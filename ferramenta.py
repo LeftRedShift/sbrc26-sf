@@ -9,8 +9,8 @@
 #
 # Requisitos:
 # - requirements.txt: streamlit>=1.31
-# - attacks/registry.py (ParamSpec/AttackSpec/CATEGORIES)
-# - attacks/runners.py (docker_* helpers)
+# - modules/registry.py (ParamSpec/AttackSpec/CATEGORIES)
+# - modules/runners.py (docker_* helpers)
 
 import csv
 import ipaddress
@@ -26,8 +26,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import streamlit as st
 
-from attacks.registry import CATEGORIES, AttackSpec, ParamSpec
-from attacks.runners import (
+from modules.registry import CATEGORIES, AttackSpec, ParamSpec
+from modules.runners import (
     docker_available,
     docker_container_status,
     docker_logs,

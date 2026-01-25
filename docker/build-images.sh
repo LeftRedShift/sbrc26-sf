@@ -74,7 +74,6 @@ docker run -d --rm --name sbrc26-cliente-2 sbrc26-clientes:latest
 docker run -d --rm --name sbrc26-cliente-3 sbrc26-clientes:latest
 docker run -d --rm --name sbrc26-cliente-4 sbrc26-clientes:latest
 docker run -d --rm --name sbrc26-cliente-5 sbrc26-clientes:latest
-echo "Esta máquina: ${LOCAL_IP}"
 echo "Servidor Web: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-http-server:latest' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"
 echo "Servidor SSH: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-ssh-server:latest' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"
 echo "SMB Server: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-smb-server:latest' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"
@@ -82,3 +81,4 @@ echo "MQTT Broker: $( docker container inspect $( docker ps -a | grep 'sbrc26-se
 echo "CoAP Server: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-coap-server' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"
 echo "Telnet Server: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-telnet-server' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"
 echo "SSL Heartbleed: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-ssl-heartbleed' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"
+echo "Esta máquina: ${LOCAL_IP}"

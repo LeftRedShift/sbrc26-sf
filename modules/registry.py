@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
-from attacks.runners import docker_run_detached
+from modules.runners import docker_run_detached
 
 @dataclass(frozen=True)
 class ParamSpec:
@@ -65,7 +65,7 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
         A(
             id="web_idor_path_traversal",
             name="IDOR Path Traversal",
-            description="Ataque IDOR via path traversal.",
+            description="Ataque IDOR (Insecure Direct Object Reference) via path traversal.",
             image_base="sbrc26-ataque-idor-path-traversal",
             params=[
                 ParamSpec("target_ip", "Endereço IP do Alvo", "ip", placeholder="__HOST_IP__"),
@@ -76,7 +76,7 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
         A(
             id="web_idor_url_parameter",
             name="IDOR URL Parameter",
-            description="Ataque IDOR via parâmetro de URL.",
+            description="Ataque IDOR (Insecure Direct Object Reference) via parâmetro de URL.",
             image_base="sbrc26-ataque-idor-url-parameter",
             params=[
                 ParamSpec("target_ip", "Endereço IP do Alvo", "ip", placeholder="__HOST_IP__"),

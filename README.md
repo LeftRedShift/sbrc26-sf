@@ -10,6 +10,7 @@
 
 ### Ambiente e configurações mínimas para execução:
 - Sistema Operacional baseado em Ubuntu 24.04 LTS
+  - Computador com Web Browser na mesma rede da instalação (caso a instalação seja realizada em Ubuntu sem Desktop Environment)
 - Processador baseado em arquitetura x86/AMD64
 - 8 GB de RAM
 - 15GB de espaço disponível
@@ -30,6 +31,8 @@ chmod +x instalador.sh
 ```
 
 > Aguarde o término da instalação. No ambiente de desenvolvimento mencionado acima, o procedimento levou em média `3 minutos e 30 segundos`.
+
+Concluída a instalação, a ferramenta estará disponível acessando http://endereço.ip.da.instalação:8501/ ou http://127.0.0.1:8501/ (caso o local da instalação possua um Web Browser).
 
 ### Parar ou iniciar os servidores (pós conclusão da instalação):
 
