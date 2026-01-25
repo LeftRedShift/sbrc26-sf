@@ -44,6 +44,7 @@ docker build -t sbrc26-ataque-ipv6-ns-flood -f atacantes/ipv6-ns-flood/Dockerfil
 docker build -t sbrc26-ataque-ipv6-ra-flood -f atacantes/ipv6-ra-flood/Dockerfile .
 docker build -t sbrc26-ataque-mqtt-bruteforce -f atacantes/mqtt-bruteforce/Dockerfile .
 docker build -t sbrc26-ataque-mqtt-publisher -f atacantes/mqtt-publisher/Dockerfile .
+docker build -t sbrc26-ataque-php-lfi-enumeration -f atacantes/php-lfi-enumeration/Dockerfile .
 docker build -t sbrc26-ataque-ping-sweep -f atacantes/ping-sweep/Dockerfile .
 docker build -t sbrc26-ataque-port-scanner-aggressive -f atacantes/port-scanner-aggressive/Dockerfile .
 docker build -t sbrc26-ataque-port-scanner-os -f atacantes/port-scanner-os/Dockerfile .

@@ -995,6 +995,8 @@ def category_tab_ui(category_name: str, attacks: List[AttackSpec]) -> None:
         st.markdown(f"Descrição: {spec.description}")
         st.markdown(f"Imagem: `{spec.image}`")
         st.markdown(f"Container (nome): `{spec.container_name}`")
+        if getattr(spec, "mitre", None):
+            st.markdown("Classificação MITRE: %s" % spec.mitre)
         if getattr(spec, "details_warning", None):
             st.warning(spec.details_warning)
         st.markdown("### Execução")

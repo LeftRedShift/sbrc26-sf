@@ -44,6 +44,8 @@
   - Executa ataque de força-bruta por dicionário de senhas contra `mqtt://192.168.0.x/`.
 - **`sbrc26-ataque-mqtt-publisher`**:
   - Executa rajada de 1000 publicações contra `mqtt://192.168.0.x/`.
+- **`sbrc26-ataque-php-lfi-enumeration`**:
+  - Executa exploração de LFI em aplicação PHP, através de _wordlist_, contra `http://192.168.0.x/ na porta informada.
 - **`sbrc26-ataque-ping-sweep`**:
   - Executa pings para varrer uma rede local genérica (10.10.0.0/18) com timeout de 30ms para cada ping.
 - **`sbrc26-ataque-port-scanner-aggressive`**:
@@ -261,6 +263,14 @@ docker run --rm -d --name sbrc26-ataque-mqtt-bruteforce sbrc26-ataque-mqtt-brute
 docker run --rm -d --name sbrc26-ataque-mqtt-publisher sbrc26-ataque-mqtt-publisher:latest "192.168.0.x"
 ```
 > Executa rajada de 1000 publicações contra `mqtt://192.168.0.x/`
+
+
+#### Container `sbrc26-ataque-php-lfi-enumeration`:
+
+```
+docker run --rm -d --name sbrc26-ataque-php-lfi-enumeration sbrc26-ataque-php-lfi-enumeration:latest "172.17.0.y" "8080"
+```
+> Executa exploração de LFI em aplicação PHP, através de _wordlist_, contra `http://172.17.0.x/ na porta informada
 
 #### Container `sbrc26-ataque-ping-sweep`:
 
