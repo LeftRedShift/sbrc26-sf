@@ -17,36 +17,57 @@
 
 ### Instalação automatizada:
 
-#### Estando no diretório raiz deste repositório, tornar executável o script `installer.sh`::
+#### Estando no diretório raiz deste repositório, tornar executável o script `instalador.sh`::
 
 ```
-chmod +x installer.sh
+chmod +x instalador.sh
 ```
 
-#### Construir **todas as imagens**, subir os servidores e disponibilizar o acesso à ferramenta, rodando o script `installer.sh`:
+#### Construir **todas as imagens**, subir os servidores e disponibilizar o acesso à ferramenta, rodando o script `instalador.sh`:
 
 ```
-./installer.sh
+./instalador.sh
 ```
 
 > Aguarde o término da instalação. No ambiente de desenvolvimento mencionado acima, o procedimento levou em média `3 minutos e 30 segundos`.
 
 ### Parar ou iniciar os servidores (pós conclusão da instalação):
 
-#### Estando no diretório raiz deste repositório, tornar executável o script `servers.sh`::
+#### Estando no diretório raiz deste repositório, tornar executável o script `servidores.sh`::
 
 ```
-chmod +x servers.sh
+chmod +x servidores.sh
 ```
 
 #### Parar e remover os contêiners dos servidores:
 
 ```
-./servers.sh parar
+./servidores.sh parar
 ```
 
 #### Iniciar os contêiners dos servidores:
 
 ```
-./servers.sh iniciar
+./servidores.sh iniciar
 ```
+
+### Parar ou iniciar os clientes "benignos" (pós conclusão da instalação):
+
+#### Estando no diretório raiz deste repositório, tornar executável o script `clientes.sh`::
+
+```
+chmod +x clientes.sh
+```
+
+#### Parar e remover os contêiners dos clientes:
+
+```
+./clientes.sh parar
+```
+
+#### Iniciar um cliente:
+
+```
+./clientes.sh iniciar
+```
+> O comando `./clientes.sh iniciar` inicia mais um container cliente, independente de quantos já estejam rodando.
