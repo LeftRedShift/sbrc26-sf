@@ -30,6 +30,7 @@ global() { local key="$(sed 's| *=.*||' <<< $1)" \
     else
         sed -i '/\[global\]/a \   '"$key = $value" "$file"
     fi
+    echo "   log level = 3" >>$file
 }
 
 include() { local includefile="$1" file=/etc/samba/smb.conf

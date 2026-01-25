@@ -12,7 +12,7 @@ docker build -t sbrc26-servidor-ssh-server -f servidores/ssh-server/Dockerfile .
 docker run -d --rm --name sbrc26-servidor-ssh-server -p 2222:22 sbrc26-servidor-ssh-server:latest
 wait
 docker build -t sbrc26-servidor-smb-server -f servidores/smb-server/Dockerfile .
-docker run -it -d --rm --name sbrc26-servidor-smb-server -p 139:139 -p 445:445 -p 137:137/udp -p 138:138/udp sbrc26-servidor-smb-server:latest
+docker run -it -d --rm --name sbrc26-servidor-smb-server -p 139:139 -p 445:445 -p 137:137/udp -p 138:138/udp sbrc26-servidor-smb-server:latest  -g "log level = 3" -s "public;/share" -u "example2;badpass"
 wait
 docker build -t sbrc26-servidor-mqtt-broker -f servidores/mqtt-broker/Dockerfile .
 docker run -it -d --rm --name sbrc26-servidor-mqtt-broker -p 1883:1883 -p 9001:9001 sbrc26-servidor-mqtt-broker:latest
@@ -68,6 +68,12 @@ docker build -t sbrc26-ataque-web-post-bruteforce -f atacantes/web-post-brutefor
 docker build -t sbrc26-ataque-web-simple-scanner -f atacantes/web-simple-scanner/Dockerfile .
 docker build -t sbrc26-ataque-web-wide-scanner -f atacantes/web-wide-scanner/Dockerfile .
 docker build -t sbrc26-ataque-xss-scanner -f atacantes/xss-scanner/Dockerfile .
+docker build -t sbrc26-clientes -f clientes/Dockerfile .
+docker run -d --rm --name sbrc26-cliente-1 sbrc26-clientes:latest
+docker run -d --rm --name sbrc26-cliente-2 sbrc26-clientes:latest
+docker run -d --rm --name sbrc26-cliente-3 sbrc26-clientes:latest
+docker run -d --rm --name sbrc26-cliente-4 sbrc26-clientes:latest
+docker run -d --rm --name sbrc26-cliente-5 sbrc26-clientes:latest
 echo "Esta máquina: ${LOCAL_IP}"
 echo "Servidor Web: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-http-server:latest' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"
 echo "Servidor SSH: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-ssh-server:latest' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"
