@@ -58,7 +58,7 @@ docker build -t sbrc26-ataque-snmp-scanner -f atacantes/snmp-scanner/Dockerfile 
 docker build -t sbrc26-ataque-sql-injection -f atacantes/sql-injection/Dockerfile .
 docker build -t sbrc26-ataque-ssh-bruteforce -f atacantes/ssh-bruteforce/Dockerfile .
 docker build -t sbrc26-ataque-stp-conf-flood -f atacantes/stp-conf-flood/Dockerfile .
-docker build -t sbrc26-ataque-stp-tcn-flood -f atacantes/stp-tcn/Dockerfile .
+docker build -t sbrc26-ataque-stp-tcn-flood -f atacantes/stp-tc-flood/Dockerfile .
 docker build -t sbrc26-ataque-syn-flood -f atacantes/syn-flood/Dockerfile .
 docker build -t sbrc26-ataque-telnet-bruteforce -f atacantes/telnet-bruteforce/Dockerfile .
 docker build -t sbrc26-ataque-udp-flood -f atacantes/udp-flood/Dockerfile .
@@ -68,12 +68,10 @@ docker build -t sbrc26-ataque-web-post-bruteforce -f atacantes/web-post-brutefor
 docker build -t sbrc26-ataque-web-simple-scanner -f atacantes/web-simple-scanner/Dockerfile .
 docker build -t sbrc26-ataque-web-wide-scanner -f atacantes/web-wide-scanner/Dockerfile .
 docker build -t sbrc26-ataque-xss-scanner -f atacantes/xss-scanner/Dockerfile .
-docker build -t sbrc26-clientes -f clientes/Dockerfile .
-docker run -d --rm --name sbrc26-cliente-1 sbrc26-clientes:latest
-docker run -d --rm --name sbrc26-cliente-2 sbrc26-clientes:latest
-docker run -d --rm --name sbrc26-cliente-3 sbrc26-clientes:latest
-docker run -d --rm --name sbrc26-cliente-4 sbrc26-clientes:latest
-docker run -d --rm --name sbrc26-cliente-5 sbrc26-clientes:latest
+docker build --no-cache -t sbrc26-clientes -f clientes/Dockerfile .
+for i in {1..5}; do
+    docker run -d --rm --name sbrc26-cliente-${i} sbrc26-clientes:latest "${LOCAL_IP}"
+done
 echo "Servidor Web: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-http-server:latest' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"
 echo "Servidor SSH: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-ssh-server:latest' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"
 echo "SMB Server: $( docker container inspect $( docker ps -a | grep 'sbrc26-servidor-smb-server:latest' | awk '{print $NF}' ) | grep 'IPAddress' | tail -n1 | awk -F'"' '{print $4}' )"

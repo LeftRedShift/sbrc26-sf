@@ -19,7 +19,7 @@ function PARAR {
 
 function INICIAR {
     NUM_CLIENT=$( docker ps -a | grep 'sbrc26-cliente-' | wc -l )
-    NEXT=$(( NUM_CLIENT + 1 ))
+    NEXT=$(( NUM_CLIENT + 3 ))
     docker run -d --rm --name sbrc26-cliente-${NEXT} sbrc26-clientes:latest
 }
 

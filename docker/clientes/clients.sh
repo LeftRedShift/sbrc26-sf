@@ -2,38 +2,40 @@
 
 . /venv/bin/activate
 
+TARGET="${1}"
+
 function SMB() {
      echo "Executando SMB"
-     /tmp/smb-expect.sh "client" "badpass" "192.168.0.111"
+     /tmp/smb-expect.sh "client" "badpass" "${TARGET}"
 }
 function SSH() {
     echo "Executando SSH"
-    /tmp/ssh-expect.sh "client" "192.168.0.111" "2222"
+    /tmp/ssh-expect.sh "client" "${TARGET}" "2222"
 }
 
 function TELNET() {
     echo "Executando TELNET"
-    /tmp/telnet-expect.sh "192.168.0.111" "2222"
+    /tmp/telnet-expect.sh "${TARGET}" "2222"
 }
 
 function WEB() {
     echo "Executando HTTP"
-    /tmp/web-client.sh "192.168.0.111" "8080"
+    /tmp/web-client.sh "${TARGET}" "8080"
 }
 
 function SSL() {
     echo "Executando HTTPS"
-    /tmp/web-client.sh "192.168.0.111" "8443"
+    /tmp/web-client.sh "${TARGET}" "8443"
 }
 
 function COAP() {
     echo "Executando COAP"
-    /venv/bin/python3 /tmp/coap-client.py "192.168.0.111"
+    /venv/bin/python3 /tmp/coap-client.py "${TARGET}"
 }
 
 function MQTT() {
     echo "Executando MQTT"
-    mosquitto_pub -h "192.168.0.111" -i mosq_pub1 -t "Client test" -m "Message with ID: 0"
+    mosquitto_pub -h "${TARGET}" -i mosq_pub1 -t "Client test" -m "Message with ID: 0"
 }
 
 CLIENTS=("WEB" "SMB" "SSH" "TELNET" "SSL" "COAP" "MQTT")

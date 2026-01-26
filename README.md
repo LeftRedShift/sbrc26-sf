@@ -9,12 +9,19 @@
 - Internet 500Mbps de download / 50Mbps de upload
 
 ### Ambiente e configurações mínimas para execução:
-- Sistema Operacional baseado em Ubuntu 24.04 LTS
-  - Computador com Web Browser na mesma rede da instalação (caso a instalação seja realizada em Ubuntu sem Desktop Environment)
+- Dispositivo Bare-metal ou VM com Sistema Operacional baseado em Ubuntu 24.04 LTS
+  - Computador com Web Browser com acesso à rede da instalação (caso a instalação seja realizada em outro servidor ou VM)
 - Processador baseado em arquitetura x86/AMD64
 - 8 GB de RAM
 - 15GB de espaço disponível
 - Acesso à internet
+
+> Os pacotes que serão instalados são bastante comuns e não devem causar nenhum tipo de distúrbio no ambiente onde for instalado, apesar disto, sugere-se fortemente que a instalação desta ferramenta seja realizada em uma instalação nova do Sistema Operacional própria para este fim, no intuito de não interferir de alguma forma não intencional no ambiente do operador que estará efetuando a instalação.
+
+### Clonar e entrar no repositório:
+```
+git clone https://github.com/LeftRedShift/sbrc26-sf.git && cd sbrc26-sf/
+```
 
 ### Instalação automatizada:
 
@@ -30,7 +37,11 @@ chmod +x instalador.sh
 ./instalador.sh
 ```
 
-> Aguarde o término da instalação. No ambiente de desenvolvimento mencionado acima, o procedimento levou em média `3 minutos e 30 segundos`.
+> Responder Sim/Yes para ambas telas a seguir.
+> Aguarde o término da instalação.
+
+
+Nota: _No ambiente de desenvolvimento mencionado acima, o procedimento levou em média `11 minutos e 30 segundos` para concluir a instalação._
 
 Concluída a instalação, a ferramenta estará disponível acessando http://endereço.ip.da.instalação:8501/ ou http://127.0.0.1:8501/ (caso o local da instalação possua um Web Browser).
 

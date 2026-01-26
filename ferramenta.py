@@ -1,17 +1,3 @@
-# app.py
-# Streamlit UI com:
-# - Abas por categoria
-# - Sidebar com tabela de servidores (inclui "Esta máquina") + logs
-# - Tela "Capturas Realizadas" (listar/download) + extração de features + ver features
-# - Formulário dinâmico por ataque (0/1/2 campos) baseado em schema (ParamSpec)
-# - Execução via "docker run --rm -d --name ..." (runner no AttackSpec)
-# - Captura opcional via tcpdump na docker0 durante execução do ataque (até container encerrar)
-#
-# Requisitos:
-# - requirements.txt: streamlit>=1.31
-# - modules/registry.py (ParamSpec/AttackSpec/CATEGORIES)
-# - modules/runners.py (docker_* helpers)
-
 import csv
 import ipaddress
 import json
@@ -20,6 +6,7 @@ import signal
 import socket
 import subprocess
 import time
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -33,27 +20,66 @@ from modules.runners import (
     docker_logs,
     docker_rm_force,
 )
+from modules.features import (
+    FEATURES_DIR,
+    TMP_DIR,
+    build_feature_paths,
+    extract_with_ntlflowlyzer,
+    extract_with_tshark,
+    extract_with_scapy,
+)
+from modules.datasets import build_dataset_unsupervised_for_capture
 
 # -----------------------------
 # Diretórios / Paths
 # -----------------------------
 CAPTURES_DIR = Path("captures")
 FEATURES_DIR = Path("features")
+DATASETS_DIR = Path("datasets")
 TMP_DIR = Path(".tmp")
 
+def build_dataset_path_for_capture(pcap_path: Path) -> Path:
+    """
+    Linka capturas a futuras gerações de dataset (mesma linha)
+
+    :param pcap_path: Caminho do arquivop .pcap
+    :type pcap_path: Path
+    :return: Caminho completo do arquivo de dataset
+    :rtype: Path
+    """
+    base = stem_no_ext(pcap_path)
+    DATASETS_DIR.mkdir(parents=True, exist_ok=True)
+    return DATASETS_DIR / f"unsupervised-{base}.csv"
 
 def _ensure_dirs() -> None:
+    """
+    Garante diretórtios de saída
+    """
     CAPTURES_DIR.mkdir(parents=True, exist_ok=True)
     FEATURES_DIR.mkdir(parents=True, exist_ok=True)
     TMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def stem_no_ext(p: Path) -> str:
-    # recon_arp_scan-20260124_161958 (sem .pcap)
+    """
+    Exemplo recon_arp_scan-20260124_161958 (sem .pcap)
+
+    :param p: Arquivo .pcap sem extensão
+    :type p: Path
+    :return: Caminho completo do arquivo .pcap sem extensão
+    :rtype: str
+    """
     return p.name[:-5] if p.name.lower().endswith(".pcap") else p.stem
 
-
 def build_feature_paths(pcap_path: Path) -> Dict[str, Path]:
+    """
+    Linka capturas a futuras extraçõpes de features (mesma linha)
+
+    :param pcap_path: Caminho completo do arquivo pcap para relacionar com futura extração
+    :type pcap_path: Path
+    :return: Dicionário de caminhos para as ferramentas de extração
+    :rtype: Dict[str, Path]
+    """
     base = stem_no_ext(pcap_path)
     return {
         "ntlflowlyzer": FEATURES_DIR / f"ntlflowlyzer-{base}.csv",
@@ -61,211 +87,154 @@ def build_feature_paths(pcap_path: Path) -> Dict[str, Path]:
         "scapy": FEATURES_DIR / f"scapy-{base}.csv",
     }
 
-
 def build_capture_path(attack_id: str) -> Path:
+    """
+    Padroniza saída de capturas
+
+    :param attack_id: ID do ataque vindo do arquivo de registry
+    :type attack_id: str
+    :return: Caminho completo do arquivo de pcap para salvamento
+    :rtype: Path
+    """
     _ensure_dirs()
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     return CAPTURES_DIR / f"{attack_id}-{ts}.pcap"
 
-
 def tool_exists(exe: str) -> bool:
+    """
+    Testa se ferramentas existem quando são chamadas para evitar quebrar a execução
+
+    :param exe: Nome do binário para teste
+    :type exe: str
+    :return: Retorna true ou false para a existência da ferramenta
+    :rtype: bool
+    """
     return shutil.which(exe) is not None
 
-
 # -----------------------------
-# Execução de comandos (binário-safe)
+# Execução de comandos (binary-safe)
 # -----------------------------
 def _run(cmd: List[str]) -> Tuple[int, str, str]:
     """
     Executa comando e retorna (rc, stdout, stderr) SEM UnicodeDecodeError.
     Decodifica bytes com UTF-8 errors='replace'.
+
+    :param cmd: Comando para execução
+    :type cmd: List[str]
+    :return: Saídas padrão
+    :rtype: Tuple[int, str, str]
     """
     p = subprocess.run(cmd, capture_output=True)  # bytes
     stdout = (p.stdout or b"").decode("utf-8", errors="replace").strip()
     stderr = (p.stderr or b"").decode("utf-8", errors="replace").strip()
     return p.returncode, stdout, stderr
 
+# Definições para o spawn de clientes benignos
+CLIENT_NAME_RE = re.compile(r"^sbrc26-cliente-(\d{1,2})$")
+CLIENT_IMAGE = "sbrc26-clientes:latest"
+CLIENT_NAME_PREFIX = "sbrc26-cliente-"
+CLIENT_MAX_RUNNING = 10
 
-# -----------------------------
-# Extração de Features
-# -----------------------------
-def extract_with_ntlflowlyzer(pcap_path: Path, out_csv: Path) -> Dict[str, Any]:
-    if not tool_exists("ntlflowlyzer"):
-        return {"ok": False, "stderr": "ntlflowlyzer não encontrado no PATH (instale o NTLFlowLyzer).", "cmd": []}
+def list_running_benign_clients() -> List[Tuple[str, int]]:
+    """
+    Retorna lista [(container_name, n)] apenas de containers RUNNING cujo nome
+    casa com ^sbrc26-cliente-(\d{1,2})$.
 
-    _ensure_dirs()
+    :return: Lista de containers de clientes benignos que estão rodando
+    :rtype: List[Tuple[str, int]]
+    """
+    if not docker_available():
+        return []
 
-    cfg = {
-        "pcap_file_address": str(pcap_path.resolve()),
-        "output_file_address": str(out_csv.resolve()),
-        "label": "Unknown",
-        "number_of_threads": 4,
-    }
+    rc, out, _ = _run(["docker", "ps", "--format", "{{.Names}}"])
+    if rc != 0:
+        return []
 
-    cfg_path = TMP_DIR / f"ntlflowlyzer-{stem_no_ext(pcap_path)}.json"
-    cfg_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    items: List[Tuple[str, int]] = []
+    for name in out.splitlines():
+        name = name.strip()
+        m = CLIENT_NAME_RE.match(name)
+        if m:
+            items.append((name, int(m.group(1))))
+    # ordena lista simples por número
+    items.sort(key=lambda x: x[1])
+    return items
 
-    cmd = ["ntlflowlyzer", "-c", str(cfg_path)]
+def next_benign_client_number(running_clients: List[Tuple[str, int]]) -> int:
+    """
+    Próximo número = (maior número em execução) + 1.
+    Se não houver nenhum, começa em 1.
+
+    :param running_clients: Lista de containers de clientes benignos que estão rodando
+    :type running_clients: List[Tuple[str, int]]
+    :return: Retorna número do próximo cliente benigno
+    :rtype: int
+    """
+    if not running_clients:
+        return 1
+    return max(n for _, n in running_clients) + 1
+
+def remove_all_benign_clients(running_clients: List[Tuple[str, int]]) -> dict:
+    """
+    docker rm -f em todos os containers em execução que batem com o prefixo.
+    :param running_clients: Lista de containers de clientes benignos que estão rodando
+    :type running_clients: List[Tuple[str, int]]
+    :return: Status da execução
+    :rtype: dict
+    """
+    if not docker_available():
+        return {"ok": False, "stderr": "Docker indisponível.", "cmd": []}
+
+    if not running_clients:
+        return {"ok": True, "stdout": "Nenhum cliente para remover.", "cmd": []}
+
+    names = [name for name, _ in running_clients]
+    cmd = ["docker", "rm", "-f", *names]
+    rc, out, err = _run(cmd)
+    return {"ok": rc == 0, "stdout": out, "stderr": err, "cmd": cmd, "returncode": rc}
+
+
+def start_one_benign_client(running_clients: List[Tuple[str, int]], host_ip: str) -> dict:
+    """Spawna um cliente benigno por clique do botão, até 10
+    docker run -d --rm --name sbrc26-cliente-Y sbrc26-clientes:latest "<HOST_IP>"
+    habilitar apenas se count < 10.
+
+    :param running_clients: Lista de containers de clientes benignos que estão rodando
+    :type running_clients: List[Tuple[str, int]]
+    :param host_ip: IP do host
+    :type host_ip: str
+    :return: Discionário de parâmetros dos containers de clientes benignos que estão rodando
+    :rtype: dict
+    """
+        if not docker_available():
+        return {"ok": False, "stderr": "Docker indisponível.", "cmd": []}
+
+    if len(running_clients) >= CLIENT_MAX_RUNNING:
+        return {"ok": False, "stderr": "Limite de 10 clientes benignos já atingido.", "cmd": []}
+
+    if not host_ip or host_ip == "-":
+        return {"ok": False, "stderr": "Não foi possível determinar o IP desta máquina para iniciar o cliente.", "cmd": []}
+
+    y = next_benign_client_number(running_clients)
+    name = f"{CLIENT_NAME_PREFIX}{y}"
+
+    cmd = ["docker", "run", "-d", "--rm", "--name", name, CLIENT_IMAGE, host_ip]
     rc, out, err = _run(cmd)
 
-    ok = (rc == 0) and out_csv.exists()  # pode estar vazio, mas se gerou arquivo, consideramos ok
-
     return {
-        "ok": ok,
-        "returncode": rc,
+        "ok": rc == 0,
         "stdout": out,
         "stderr": err,
         "cmd": cmd,
-        "output": str(out_csv),
-        "config": str(cfg_path),
+        "returncode": rc,
+        "container_name": name,
     }
-
-
-def extract_with_tshark(pcap_path: Path, out_csv: Path) -> Dict[str, Any]:
-    if not tool_exists("tshark"):
-        return {"ok": False, "stderr": "tshark não encontrado no PATH.", "cmd": []}
-
-    _ensure_dirs()
-
-    fields = [
-        "frame.number",
-        "frame.time_epoch",
-        "frame.len",
-        "_ws.col.Protocol",
-        "eth.src",
-        "eth.dst",
-        "ip.src",
-        "ip.dst",
-        "ip.proto",
-        "tcp.srcport",
-        "tcp.dstport",
-        "tcp.flags",
-        "udp.srcport",
-        "udp.dstport",
-    ]
-
-    cmd = [
-        "tshark",
-        "-r",
-        str(pcap_path),
-        "-T",
-        "fields",
-        "-E",
-        "header=y",
-        "-E",
-        "separator=,",
-        "-E",
-        "quote=d",
-        "-E",
-        "occurrence=f",
-    ]
-    for f in fields:
-        cmd += ["-e", f]
-
-    try:
-        p = subprocess.run(cmd, capture_output=True)
-        stdout = (p.stdout or b"").decode("utf-8", errors="replace")
-        stderr = (p.stderr or b"").decode("utf-8", errors="replace").strip()
-
-        out_csv.write_text(stdout, encoding="utf-8")
-        ok = (p.returncode == 0) and out_csv.exists()
-        return {"ok": ok, "returncode": p.returncode, "stderr": stderr, "cmd": cmd, "output": str(out_csv)}
-    except Exception as e:
-        return {"ok": False, "stderr": str(e), "cmd": cmd}
-
-
-def extract_with_scapy(pcap_path: Path, out_csv: Path) -> Dict[str, Any]:
-    _ensure_dirs()
-    try:
-        from scapy.all import PcapReader  # type: ignore
-        from scapy.layers.inet import IP, TCP, UDP  # type: ignore
-        from scapy.layers.l2 import Ether  # type: ignore
-    except Exception as e:
-        return {"ok": False, "stderr": f"Scapy não disponível/import falhou: {e}", "cmd": ["python/scapy"]}
-
-    header = [
-        "pkt_index",
-        "time_epoch",
-        "frame_len",
-        "eth_src",
-        "eth_dst",
-        "ip_src",
-        "ip_dst",
-        "ip_proto",
-        "l4",
-        "src_port",
-        "dst_port",
-        "tcp_flags",
-    ]
-
-    try:
-        with out_csv.open("w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(header)
-
-            idx = 0
-            with PcapReader(str(pcap_path)) as pr:
-                for pkt in pr:
-                    idx += 1
-                    t = getattr(pkt, "time", None)
-
-                    eth_src = eth_dst = ""
-                    ip_src = ip_dst = ""
-                    ip_proto = ""
-                    l4 = ""
-                    src_port = dst_port = ""
-                    tcp_flags = ""
-
-                    frame_len = len(bytes(pkt))
-
-                    if pkt.haslayer(Ether):
-                        eth = pkt[Ether]
-                        eth_src = getattr(eth, "src", "") or ""
-                        eth_dst = getattr(eth, "dst", "") or ""
-
-                    if pkt.haslayer(IP):
-                        ip = pkt[IP]
-                        ip_src = getattr(ip, "src", "") or ""
-                        ip_dst = getattr(ip, "dst", "") or ""
-                        ip_proto = str(getattr(ip, "proto", "") or "")
-
-                        if pkt.haslayer(TCP):
-                            tcp = pkt[TCP]
-                            l4 = "TCP"
-                            src_port = str(getattr(tcp, "sport", "") or "")
-                            dst_port = str(getattr(tcp, "dport", "") or "")
-                            tcp_flags = str(getattr(tcp, "flags", "") or "")
-                        elif pkt.haslayer(UDP):
-                            udp = pkt[UDP]
-                            l4 = "UDP"
-                            src_port = str(getattr(udp, "sport", "") or "")
-                            dst_port = str(getattr(udp, "dport", "") or "")
-
-                    w.writerow(
-                        [
-                            idx,
-                            f"{float(t):.6f}" if t is not None else "",
-                            frame_len,
-                            eth_src,
-                            eth_dst,
-                            ip_src,
-                            ip_dst,
-                            ip_proto,
-                            l4,
-                            src_port,
-                            dst_port,
-                            tcp_flags,
-                        ]
-                    )
-
-        return {"ok": True, "cmd": ["python/scapy"], "output": str(out_csv)}
-    except Exception as e:
-        return {"ok": False, "stderr": str(e), "cmd": ["python/scapy"], "output": str(out_csv)}
-
 
 # -----------------------------
 # Sidebar: Servidores + Logs
 # -----------------------------
+
+# Especificações dos servidores para exibir na barra lateral
 SERVER_SPECS = [
     ("Servidor Web", "sbrc26-servidor-http-server"),
     ("Servidor SSH", "sbrc26-servidor-ssh-server"),
@@ -276,6 +245,7 @@ SERVER_SPECS = [
     ("SSL Heartbleed", "sbrc26-servidor-ssl-heartbleed"),
 ]
 
+# Especificações dos logs dos servidores
 SERVER_LOG_SPECS: Dict[str, Dict[str, Any]] = {
     "sbrc26-servidor-coap-server": {"mode": "docker_logs"},
     "sbrc26-servidor-http-server": {"mode": "docker_logs"},
@@ -303,6 +273,7 @@ st.caption(
     "e clique em Iniciar ataque para acionar a execução via Docker."
 )
 
+# Tentativa de deixar mais agradável o impilhamento de funcionalidades na tela
 st.markdown(
     '''
     <style>
@@ -322,7 +293,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Estado persistente
+# Estado persistente do output do último ataque
 if "last_attack_result" not in st.session_state:
     st.session_state["last_attack_result"] = {}
 if "view" not in st.session_state:
@@ -332,6 +303,14 @@ if "view" not in st.session_state:
 # Docker helpers (inspect/list)
 # -----------------------------
 def _container_ids_by_ancestor(image: str) -> List[str]:
+    """
+    Busca id real do container associado a imagem
+
+    :param image: Nome da imagem para pesquisa
+    :type image: str
+    :return: Lista do containers associados as imagens
+    :rtype: List[str]
+    """
     rc, out, _ = _run(["docker", "ps", "-a", "-q", "--filter", f"ancestor={image}"])
     ids = [x for x in out.splitlines() if x.strip()] if rc == 0 else []
 
@@ -341,8 +320,15 @@ def _container_ids_by_ancestor(image: str) -> List[str]:
 
     return ids
 
-
 def _inspect(cont_id: str) -> Optional[dict]:
+    """
+    Docker container inspect pra extrair dados de exibição
+
+    :param cont_id: ID do container para inspeção
+    :type cont_id: str
+    :return: Dicionário de parâmetros retornados
+    :rtype: Optional[dict]
+    """
     rc, out, _ = _run(["docker", "inspect", cont_id])
     if rc != 0 or not out:
         return None
@@ -352,8 +338,15 @@ def _inspect(cont_id: str) -> Optional[dict]:
     except Exception:
         return None
 
-
 def _extract_ips(inspected: dict) -> Dict[str, str]:
+    """
+    Parse no inspect para pegar o IP do container
+
+    :param inspected: Dicionário de parâmetros da inspeção
+    :type inspected: dict
+    :return: Discionário com o(s) IP(s) do container
+    :rtype: Dict[str, str]
+    """
     ips: Dict[str, str] = {}
     nets = (inspected.get("NetworkSettings") or {}).get("Networks") or {}
     for net_name, net_data in nets.items():
@@ -362,8 +355,15 @@ def _extract_ips(inspected: dict) -> Dict[str, str]:
             ips[net_name] = ip
     return ips
 
-
 def _pick_preferred_container(container_ids: List[str]) -> Optional[str]:
+    """
+    Seleção do conteiner exato
+
+    :param container_ids: IDS dos containers para seleção
+    :type container_ids: List[str]
+    :return: Container ID real
+    :rtype: Optional[str]
+    """
     if not container_ids:
         return None
     for cid in container_ids:
@@ -375,8 +375,15 @@ def _pick_preferred_container(container_ids: List[str]) -> Optional[str]:
             return cid
     return container_ids[0]
 
-
 def _get_preferred_container_id_by_ancestor(image_base: str) -> Optional[str]:
+    """
+    Seleção do conteiner exato pelo nome da imagem
+
+    :param image_base: Nome da imagem
+    :type image_base: str
+    :return: IDs dos containers retornados
+    :rtype: Optional[str]
+    """
     ids = _container_ids_by_ancestor(image_base)
     return _pick_preferred_container(ids)
 
@@ -384,6 +391,18 @@ def _get_preferred_container_id_by_ancestor(image_base: str) -> Optional[str]:
 # Logs dos servidores (view)
 # -----------------------------
 def fetch_server_logs(image_base: str, tail_lines: int = 200, prefer_alt: bool = False) -> Dict[str, Any]:
+    """
+    Consulta de logs de um servidor
+
+    :param image_base: Nome da Imagem
+    :type image_base: str
+    :param tail_lines: Número de linhas de logs para retornas, padrão é 200
+    :type tail_lines: int, optional
+    :param prefer_alt: Método alternativo, para casos de logs binários, padrão é False
+    :type prefer_alt: bool, optional
+    :return: Saída padrão do retorno dos logs para exibição
+    :rtype: Dict[str, Any]
+    """
     if not docker_available():
         return {"ok": False, "mode": "error", "cmd_display": "", "stdout": "", "stderr": "Docker indisponível.", "returncode": 1}
 
@@ -417,14 +436,26 @@ def fetch_server_logs(image_base: str, tail_lines: int = 200, prefer_alt: bool =
 
 
 def _clip_text(s: str, max_chars: int = 120_000) -> str:
+    """
+    Definição de retorno máximo de saída textual
+
+    :param s: Valores do tipo string retornados
+    :type s: str
+    :param max_chars: Máximo de caracteres para um retorno único, padrão é 120.000 caracteres
+    :type max_chars: int, optional
+    :return: Retorno textual truncado em 120.000 caracteres, caso necessário
+    :rtype: str
+    """
     if not s:
         return s
     if len(s) <= max_chars:
         return s
     return s[:max_chars] + "\n\n[saída truncada: excedeu o limite de caracteres]"
 
-
 def render_server_logs_view() -> None:
+    """
+    Funções streamlit para montar o módulo de visualização de logs
+    """
     label = st.session_state.get("server_logs_label", "")
     image_base = st.session_state.get("server_logs_image_base", "")
     st.subheader(f"Logs do servidor: {label}")
@@ -478,19 +509,34 @@ def render_server_logs_view() -> None:
 # Capturas + Features (views)
 # -----------------------------
 def list_capture_files() -> List[Path]:
+    """
+    Lista de arquivos .pcap no diretório /captures
+
+    :return: Lista de arquivo em formato path em ordem ascendente
+    :rtype: List[Path]
+    """
     _ensure_dirs()
     return sorted(CAPTURES_DIR.glob("*.pcap"), key=lambda p: p.stat().st_mtime, reverse=True)
 
-
 def format_bytes(n: int) -> str:
+    """
+    Função auxiliar para exibir na tela o tamanho do arquivo de captura 
+
+    :param n: Retorno em bytes
+    :type n: int
+    :return: Conversão adequada human-readable
+    :rtype: str
+    """
     for unit in ["B", "KB", "MB", "GB", "TB"]:
         if n < 1024 or unit == "TB":
             return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
         n /= 1024
     return f"{n:.1f} TB"
 
-
 def render_captures_view() -> None:
+    """
+    Funções streamlit para montar o módulo de visualização das capturas
+    """
     st.subheader("Capturas Realizadas")
     top = st.columns([1, 1, 3])
     if top[0].button("Voltar"):
@@ -510,42 +556,84 @@ def render_captures_view() -> None:
 
     st.caption(f'Total: {len(files)} arquivo(s) em "{CAPTURES_DIR}/"')
 
-    h1, h2, h3, h4, h5, h6 = st.columns([4, 1.5, 2, 1.4, 1.6, 1.6])
+    # Organização em colunas para exibis os botões em uma mesma linha
+    h1, h2, h3, h4, h5, h6, h7, h8 = st.columns([4, 1.5, 2, 1.4, 1.6, 1.6, 1.8, 1.8], gap="small")
     h1.write("Arquivo")
     h2.write("Tamanho")
     h3.write("Modificado em")
     h4.write("Download")
     h5.write("Extrair")
     h6.write("Ver features")
+    h7.write("Gerar dataset")
+    h8.write("Ver dataset")
 
     for p in files:
         stat = p.stat()
         size = format_bytes(stat.st_size)
         mtime = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
 
+        # Features existentes?
         outs = build_feature_paths(p)
-        has_features = any(path.exists() for path in outs.values())
+        existing = {tool: path for tool, path in outs.items() if path.exists()}
+        has_features = len(existing) > 0
 
-        c1, c2, c3, c4, c5, c6 = st.columns([4, 1.5, 2, 1.4, 1.6, 1.6], gap="small")
+        # Dataset existente?
+        dataset_path = build_dataset_path_for_capture(p)
+        has_dataset = dataset_path.exists()
+
+        c1, c2, c3, c4, c5, c6, c7, c8 = st.columns([4, 1.5, 2, 1.4, 1.6, 1.6, 1.8, 1.8], gap="small")
         c1.write(p.name)
         c2.write(size)
         c3.write(mtime)
 
+        # Download PCAP
         with open(p, "rb") as f:
-            c4.download_button("Download", data=f, file_name=p.name, mime="application/vnd.tcpdump.pcap", key=f"dl_{p.name}", use_container_width=True)
+            c4.download_button(
+                "Download",
+                data=f,
+                file_name=p.name,
+                mime="application/vnd.tcpdump.pcap",
+                key=f"dl_{p.name}",
+                use_container_width=True,
+            )
 
+        # Extrair features
         if c5.button("Extrair", key=f"fx_{p.name}", type="secondary", use_container_width=True):
             st.session_state["selected_pcap"] = str(p)
             st.session_state["view"] = "features"
             st.rerun()
 
+        # Ver features
         if c6.button("Ver", key=f"vf_{p.name}", type="secondary", use_container_width=True, disabled=not has_features):
             st.session_state["selected_pcap"] = str(p)
             st.session_state["view"] = "view_features"
             st.rerun()
 
+        # Gerar dataset (somente se há features)
+        if c7.button("Gerar", key=f"gd_{p.name}", type="secondary", use_container_width=True, disabled=not has_features):
+            try:
+                from modules.datasets import build_dataset_unsupervised_for_capture
+                out_path = build_dataset_unsupervised_for_capture(
+                    p,
+                    features_dir=FEATURES_DIR,   # ou "features"
+                    outdir=DATASETS_DIR,         # ou "datasets"
+                )
+                st.success(f"Dataset gerado: {Path(out_path).name}")
+            except Exception as e:
+                st.error("Falha ao gerar dataset.")
+                st.code(str(e), language="text")
+            st.rerun()
+
+        # Ver dataset (somente se existe)
+        if c8.button("Ver", key=f"vd_{p.name}", type="secondary", use_container_width=True, disabled=not has_dataset):
+            st.session_state["selected_pcap"] = str(p)
+            st.session_state["view"] = "view_dataset"
+            st.rerun()
 
 def render_features_view() -> None:
+    """
+    Funções streamlit para montar o módulo de seleção da visualização de features extraídas
+    """
     st.subheader("Extração de Features")
     top = st.columns([1, 3])
     if top[0].button("Voltar"):
@@ -602,8 +690,17 @@ def render_features_view() -> None:
             st.session_state["view"] = "view_features"
             st.rerun()
 
-
 def _preview_csv(path: Path, n_rows: int) -> Any:
+    """
+    Funções de manipulação de dados para exibir os resultados no Streamlit
+
+    :param path: Caminho do arquivo csv para exibição
+    :type path: Path
+    :param n_rows: Número padrão de linhas para exibir
+    :type n_rows: int
+    :return: Retorna os dados formatados
+    :rtype: Any
+    """
     try:
         import pandas as pd  # type: ignore
         df = pd.read_csv(path)
@@ -618,8 +715,105 @@ def _preview_csv(path: Path, n_rows: int) -> Any:
                 rows.append(row)
         return rows
 
+def render_view_dataset_view() -> None:
+    """
+    Funções streamlit para montar o módulo de visualização dos datasets
+    """
+    st.subheader("Dataset (não-supervidionado)")
+
+    top = st.columns([1, 1, 3])
+    if top[0].button("Voltar"):
+        st.session_state["view"] = "captures"
+        st.rerun()
+    if top[1].button("Atualizar"):
+        st.rerun()
+
+    pcap_str = st.session_state.get("selected_pcap", "")
+    if not pcap_str:
+        st.info("Nenhuma captura selecionada.")
+        return
+
+    pcap_path = Path(pcap_str)
+    ds_path = build_dataset_path_for_capture(pcap_path)
+
+    st.write("Captura:", str(pcap_path))
+    st.write("Dataset:", str(ds_path))
+
+    if not ds_path.exists():
+        st.warning("Dataset não encontrado para esta captura.")
+        return
+
+    # Download
+    with open(ds_path, "rb") as f:
+        st.download_button(
+            label="Download dataset (CSV)",
+            data=f,
+            file_name=ds_path.name,
+            mime="text/csv",
+            use_container_width=False,
+        )
+
+    st.divider()
+
+    # Controles de visualização
+    c1, c2, c3 = st.columns([1.3, 1.3, 2.4], gap="small")
+    preview_n = c1.number_input("Prévia (linhas)", min_value=10, max_value=20000, value=200, step=50)
+    max_cols = c2.number_input("Máx. colunas", min_value=10, max_value=300, value=80, step=10)
+    search = c3.text_input("Filtro (contém no texto da linha)", value="").strip().lower()
+
+    # Carrega com pandas (preferível)
+    try:
+        import pandas as pd
+
+        # Lê só as N primeiras linhas para ficar rápido.
+        df = pd.read_csv(ds_path, nrows=int(preview_n), engine="python")
+
+        # Limita colunas (muitas colunas deixam pesado)
+        if df.shape[1] > int(max_cols):
+            df = df.iloc[:, : int(max_cols)]
+
+        # Filtro simples por substring (concatena valores por linha)
+        if search:
+            mask = df.astype(str).agg(" ".join, axis=1).str.lower().str.contains(search, na=False)
+            df = df[mask]
+
+        st.caption(f"Exibindo {len(df)} linha(s) (até {preview_n}) e {df.shape[1]} coluna(s).")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+    except Exception as e:
+        # Fallback sem pandas
+        st.warning("Pandas não disponível ou falhou ao ler o CSV. Usando visualização simples.")
+        st.code(str(e), language="text")
+
+        import csv
+
+        rows = []
+        with ds_path.open("r", encoding="utf-8", errors="replace", newline="") as fp:
+            r = csv.reader(fp)
+            for i, row in enumerate(r):
+                rows.append(row)
+                if i >= int(preview_n):
+                    breakf
+
+        if rows:
+            # Mostra como dataframe “manual”
+            header = rows[0]
+            data = rows[1:]
+            # aplica filtro se houver
+            if search:
+                data = [r for r in data if search in " ".join(r).lower()]
+            st.caption(f"Exibindo {len(data)} linha(s) (até {preview_n})")
+            st.dataframe(data, use_container_width=True)  # sem header no fallback
+        else:
+            st.write("Arquivo vazio.")
 
 def render_view_features_view() -> None:
+    """
+    Funções streamlit para montar o módulo de visualização de features extraídas
+
+    :return: _description_
+    :rtype: _type_
+    """
     st.subheader("Features extraídas")
     top = st.columns([1, 3])
     if top[0].button("Voltar"):
@@ -666,6 +860,12 @@ def render_view_features_view() -> None:
 # Host IP e status de servidores
 # -----------------------------
 def get_host_ip() -> str:
+    """
+    Retorna o IP real do host
+
+    :return: Retorna endereço IP como string
+    :rtype: str
+    """
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -677,6 +877,12 @@ def get_host_ip() -> str:
 
 @st.cache_data(ttl=5, show_spinner=False)
 def get_servers_status() -> List[dict]:
+    """
+    Retorna o status dos servidores
+
+    :return: Lista de status dos servidores
+    :rtype: List[dict]
+    """
     rows: List[dict] = [{"Servidor": "Esta máquina", "IP": get_host_ip()}]
 
     if not docker_available():
@@ -703,6 +909,16 @@ def get_servers_status() -> List[dict]:
 # Captura tcpdump
 # -----------------------------
 def start_tcpdump_capture(pcap_path: Path, iface: str = "docker0") -> Dict[str, Any]:
+    """
+    Função para iniciar captura de tráfego
+
+    :param pcap_path: Caminho para o salvar o arquivo .pcap
+    :type pcap_path: Path
+    :param iface: Interface, fixado na "docker0" para fins da viabilidade do experimento
+    :type iface: str, optional
+    :return: Dicionário do caminho do arquivo e interface
+    :rtype: Dict[str, Any]
+    """
     _ensure_dirs()
     cmd = ["tcpdump", "-i", iface, "-w", str(pcap_path)]
     try:
@@ -719,6 +935,16 @@ def start_tcpdump_capture(pcap_path: Path, iface: str = "docker0") -> Dict[str, 
         return {"ok": False, "cmd": cmd, "popen": None, "stdout": "", "stderr": str(e)}
 
 def stop_tcpdump_capture(p: subprocess.Popen, timeout: float = 3.0) -> Dict[str, Any]:
+    """
+    Função para interromper a captura
+
+    :param p: ID do subprocesso iniciado
+    :type p: subprocess.Popen
+    :param timeout: timeout, padrão é 3 segundos
+    :type timeout: float, optional
+    :return: Dicionário com o ID do subprocesso e timeout
+    :rtype: Dict[str, Any]
+    """
     try:
         if p.poll() is None:
             p.send_signal(signal.SIGINT)
@@ -774,17 +1000,64 @@ if st.sidebar.button("Atualizar"):
     get_servers_status.clear()
 
 st.sidebar.divider()
-st.sidebar.header("Informação importante:")
-st.sidebar.caption(
-    "Esta ferramenta tem propósito experimental e educacional e não deve ser utilizada para atacar endereços externos. "
-    "Para demonstração, utilize o próprio IP desta máquina como alvo dos ataques (nos ataques diretos a um endereço IP). "
-    "Nos ataques em nível de rede, utilize a rede docker (172.17.0.0/16) ou sua rede local."
-)
+st.sidebar.header("Clientes benignos")
+
+running_clients = list_running_benign_clients()
+x = len(running_clients)
+
+st.sidebar.write(f"Clientes benignos: **{x}**")
+
+cA, cB = st.sidebar.columns([1, 1], gap="small")
+
+remove_disabled = (x == 0) or (not docker_available())
+start_disabled = (x >= CLIENT_MAX_RUNNING) or (not docker_available())
+
+if cA.button("Remover todos os clientes", disabled=remove_disabled, use_container_width=True):
+    res = remove_all_benign_clients(running_clients)
+    if res.get("ok"):
+        st.sidebar.success("Clientes removidos.")
+    else:
+        st.sidebar.error("Falha ao remover clientes.")
+        if res.get("stderr"):
+            st.sidebar.caption(res["stderr"])
+    st.rerun()
+
+if cB.button("Iniciar um cliente", disabled=start_disabled, use_container_width=True):
+    res = start_one_benign_client(running_clients)
+    if res.get("ok"):
+        st.sidebar.success(f"Iniciado: {res.get('container_name')}")
+    else:
+        st.sidebar.error("Falha ao iniciar cliente.")
+        if res.get("stderr"):
+            st.sidebar.caption(res["stderr"])
+    st.rerun()
+
+# (Opcional) Mostrar lista compacta dos nomes detectados
+with st.sidebar.expander("Detalhes", expanded=False):
+    if not running_clients:
+        st.write("Nenhum cliente benigno em execução.")
+    else:
+        st.write(", ".join(name for name, _ in running_clients))
+
+
+st.sidebar.divider()
 
 # -----------------------------
 # Execução / Stop / Status do ataque
 # -----------------------------
 def run_attack_from_spec(spec: AttackSpec, resolved_params: Dict[str, Any], capture_enabled: bool = True) -> Dict[str, Any]:
+    """
+    Função de execução dos ataques (controle de containers)
+
+    :param spec: Difinição dos parâmetros do ataque vindos do registry
+    :type spec: AttackSpec
+    :param resolved_params: Lista de parâmetros para a execução
+    :type resolved_params: Dict[str, Any]
+    :param capture_enabled: Booleano para ativar automaticamente ou não a captura junto, padrão é True
+    :type capture_enabled: bool, optional
+    :return: Dicionário de parâmetros
+    :rtype: Dict[str, Any]
+    """
     if not docker_available():
         return {"ok": False, "stderr": "Docker indisponível no host do Streamlit.", "cmd": [], "returncode": 1}
 
@@ -822,6 +1095,12 @@ def run_attack_from_spec(spec: AttackSpec, resolved_params: Dict[str, Any], capt
     return attack_result
 
 def show_last_attack_result(spec: AttackSpec) -> None:
+    """
+    Estado da sessão de execução
+
+    :param spec: Retorno do estado da última execução da especificação
+    :type spec: AttackSpec
+    """
     res = st.session_state["last_attack_result"].get(spec.id)
     if not res:
         return
@@ -858,6 +1137,12 @@ def show_last_attack_result(spec: AttackSpec) -> None:
         st.rerun()
 
 def stop_attack(spec: AttackSpec) -> None:
+    """
+    Controle manual de parada do ataque
+
+    :param spec: Retorno da especificação para parar o ataque
+    :type spec: AttackSpec
+    """
     if not spec.container_name:
         st.warning("Este ataque não possui container_name definido; não é possível parar automaticamente.")
         return
@@ -873,6 +1158,12 @@ def stop_attack(spec: AttackSpec) -> None:
             st.code(result["stderr"], language="text")
 
 def show_attack_runtime(spec: AttackSpec) -> None:
+    """
+    Exibição do ataque em curso
+
+    :param spec: Retorno da especificação do ataque
+    :type spec: AttackSpec
+    """
     if not spec.container_name:
         st.info("Este ataque não possui container_name definido; status/stop não disponíveis.")
         return
@@ -894,36 +1185,74 @@ def show_attack_runtime(spec: AttackSpec) -> None:
 # -----------------------------
 # Formulário dinâmico por schema
 # -----------------------------
-
-
 def validate_ip(value: str) -> bool:
+    """
+    Função para validação de IP
+
+    :param value: Endereço em string
+    :type value: str
+    :return: Se é ou não um IP válido
+    :rtype: bool
+    """
     try:
         ipaddress.ip_address(value.strip())
         return True
     except Exception:
         return False
 
-
 def validate_port(value: int) -> bool:
+    """
+    Validação de porta
+
+    :param value: Porta em inteiro
+    :type value: int
+    :return: Se é ou não uma porta válida
+    :rtype: bool
+    """
     return 1 <= int(value) <= 65535
 
-
 def validate_cidr(value: str) -> bool:
+    """
+    Validação de rede
+
+    :param value: Rede em string
+    :type value: str
+    :return: Se é ou não uma rede válida
+    :rtype: bool
+    """
     try:
         ipaddress.ip_network(value.strip(), strict=False)
         return True
     except Exception:
         return False
 
-
 def resolve_placeholder(p: ParamSpec, host_ip: str) -> str:
+    """
+    Definição de placeholders (sugestões de preenchimento) com base nas especificações do registry
+
+    :param p: Tipo de parâmetro
+    :type p: ParamSpec
+    :param host_ip: IP sugerido
+    :type host_ip: str
+    :return: Placeholder do IP sugerido
+    :rtype: str
+    """
     ph = getattr(p, "placeholder", None)
     if not ph:
         return ""
     return host_ip if ph == "__HOST_IP__" else str(ph)
 
-
 def render_params_form(spec: AttackSpec, host_ip: str) -> Tuple[bool, Dict[str, Any], bool]:
+    """
+    Rederização do formulários de parâmetros de um ataque selecionado
+
+    :param spec: Tipo de parâmetro
+    :type spec: AttackSpec
+    :param host_ip: IP sugerido
+    :type host_ip: str
+    :return: Para cada tipo de ataque, um tipo de sugestão de parâmetros para preenchimento
+    :rtype: Tuple[bool, Dict[str, Any], bool]
+    """
     resolved: Dict[str, Any] = {}
     if not spec.params:
         if spec.no_params_note:
@@ -954,6 +1283,16 @@ def render_params_form(spec: AttackSpec, host_ip: str) -> Tuple[bool, Dict[str, 
     return submitted, resolved, capture_enabled
 
 def validate_params(spec: AttackSpec, params: Dict[str, Any]) -> List[str]:
+    """
+    Validação dos parâmetros inseridos
+
+    :param spec: Tipo de parâmetro
+    :type spec: AttackSpec
+    :param params: Dicionário de "valores possíveis"
+    :type params: Dict[str, Any]
+    :return: Lista validada
+    :rtype: List[str]
+    """
     errors: List[str] = []
     for p in spec.params:
         v = params.get(p.key, "")
@@ -979,6 +1318,14 @@ def validate_params(spec: AttackSpec, params: Dict[str, Any]) -> List[str]:
 # UI em abas por categoria
 # -----------------------------
 def category_tab_ui(category_name: str, attacks: List[AttackSpec]) -> None:
+    """
+    Renderizador das tabs das categorias de ataques
+
+    :param category_name: Caterogias especificadas no registry
+    :type category_name: str
+    :param attacks: Parâmetros específicos do ataque selecionado numa aba
+    :type attacks: List[AttackSpec]
+    """
     st.subheader(category_name)
 
     attack_name_to_spec = {a.name: a for a in attacks}
@@ -1039,6 +1386,9 @@ if st.session_state["view"] == "features":
 if st.session_state["view"] == "view_features":
     render_view_features_view()
     st.stop()
+if st.session_state["view"] == "view_dataset":
+    render_view_dataset_view()
+    st.stop()
 
 # -----------------------------
 # Tela principal: abas
@@ -1051,3 +1401,8 @@ for tab, category_name in zip(tabs, category_names):
 
 st.divider()
 st.caption("Simpósio Brasileiro de Redes de Computadores e Sistemas Distribuídos (SBRC) 2026 - Salão de Ferramentas.")
+st.caption(
+    "Esta ferramenta tem propósito educacional e não deve ser utilizada para atacar endereços externos ao experimento. "
+    "Para demonstração, utilize o próprio IP desta máquina como alvo dos ataques (nos ataques diretos a um endereço IP). "
+    "Nos ataques em nível de rede, utilize a rede docker (172.17.0.0/16) ou sua rede local."
+)

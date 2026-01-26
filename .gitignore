@@ -7,6 +7,7 @@ old/.*
 captures/*.pcap
 features/*.csv
 datasets/*.csv
+models
 models/*.csv
 models/*.joblib
 NTLFlowLyzer/
