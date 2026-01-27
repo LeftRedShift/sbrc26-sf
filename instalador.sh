@@ -19,14 +19,10 @@ Signed-By: /etc/apt/keyrings/docker.asc
 EOF
 sudo apt update
 echo "Instalando Docker Engine..."
-sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 sudo usermod -aG docker $USER
-newgrp docker
 echo "Instalando a ferramenta..."
-cd /home/experimento/ || exit 1
-git clone https://github.com/LeftRedShift/sbrc26-sf.git
-cd sbrc26-sf/ || exit 1
-chmod +x *.sh
+chmod +x clientes.sh servidores.sh
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
@@ -42,5 +38,4 @@ cd docker/ || exit 1
 chmod +x build-images.sh
 echo "Construindo os contêineres..."
 ./build-images.sh
-cd ../sbrc26-sf/ || exit 1
 streamlit run ferramenta.py &

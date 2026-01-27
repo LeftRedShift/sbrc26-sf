@@ -41,11 +41,11 @@ chmod +x instalador.sh
 > Aguarde o término da instalação.
 
 
-Nota: _No ambiente de desenvolvimento mencionado acima, o procedimento levou em média `11 minutos e 30 segundos` para concluir a instalação._
+**Nota:** _No ambiente de desenvolvimento mencionado acima, o procedimento levou em média `11 minutos e 30 segundos` para concluir a instalação, baixando cerca de 2.3GB de dados pela internet e resultando no uso de 12GB de espaço adicional em disco._
 
 Concluída a instalação, a ferramenta estará disponível acessando http://endereço.ip.da.instalação:8501/ ou http://127.0.0.1:8501/ (caso o local da instalação possua um Web Browser).
 
-### Parar ou iniciar os servidores (pós conclusão da instalação):
+### Parar ou iniciar os servidores (pós conclusão da instalação, caso deseje):
 
 #### Estando no diretório raiz deste repositório, tornar executável o script `servidores.sh`::
 
@@ -53,7 +53,7 @@ Concluída a instalação, a ferramenta estará disponível acessando http://end
 chmod +x servidores.sh
 ```
 
-#### Parar e remover os contêiners dos servidores:
+#### Estando no diretório raiz deste repositório, para parar e remover os contêiners dos servidores:
 
 ```
 ./servidores.sh parar
@@ -65,15 +65,9 @@ chmod +x servidores.sh
 ./servidores.sh iniciar
 ```
 
-### Parar ou iniciar os clientes "benignos" (pós conclusão da instalação):
+### Parar ou iniciar os clientes "benignos" (pós conclusão da instalação caso deseje):
 
-#### Estando no diretório raiz deste repositório, tornar executável o script `clientes.sh`::
-
-```
-chmod +x clientes.sh
-```
-
-#### Parar e remover os contêiners dos clientes:
+#### Estando no diretório raiz deste repositório, para parar e remover os contêiners dos clientes:
 
 ```
 ./clientes.sh parar
@@ -84,4 +78,4 @@ chmod +x clientes.sh
 ```
 ./clientes.sh iniciar
 ```
-> O comando `./clientes.sh iniciar` inicia mais um container cliente, independente de quantos já estejam rodando.
+> O comando `./clientes.sh iniciar` inicia mais um cliente, independente de quantos já estejam rodando.
