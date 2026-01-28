@@ -21,6 +21,7 @@ sudo apt update
 echo "Instalando Docker Engine..."
 sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 sudo usermod -aG docker $USER
+newgrp docker
 echo "Instalando a ferramenta..."
 chmod +x clientes.sh servidores.sh
 python3 -m venv .venv
@@ -34,8 +35,6 @@ pip install -r requirements.txt
 python3 setup.py install
 cd ../
 pip install -r requirements.txt
-echo "Saia desta sessão e logue novamente para prosseguir (necessário para carregar as variáveis de ambiente da instalação do Docker Engine)"
-bash
 cd ~/sbrc26-sf/docker/ || exit 1
 chmod +x build-images.sh
 echo "Construindo os contêineres..."
