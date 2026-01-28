@@ -99,3 +99,32 @@ while read -r CONT; do docker rm -f ${CONT}; done < <( docker ps -a | grep 'sbrc
 while read -r IMG; do docker rmi -f ${IMG}; done < <( docker images --format table | grep 'sbrc26-' | awk '{print $3}' )
 
 ```
+
+
+## Estrutura do projeto**:
+```
+sbrc26-sf
+|
+├── assets/                   # Diretório auxiliar para documentação
+├── captures/                 # Diretório de armazenamento das capturas .pcap
+├── datasets/                 # Diretório de datasets gerados
+├── docker/                   # Repositório de contêineres
+│		 ├── atacantes/           # Diretório dos contêineres atacantes
+│		 ├── build-images.sh      # Script de construção de todas as imagens
+│		 ├── clientes/            # Diretório dos contêineres clientes (benignos)
+│		 └── servidores/          # Diretório dos contêineres servidores alvo
+├── features/                 # Diretório dos CSV de extração de features
+├── modules/                  # Diretório dos módulos da ferramenta
+│		 ├── datasets.py          # Módulo de geração de datasets
+│		 ├── features.py          # Módulo de extração de features
+│		 ├── registry.py          # Módulo de declaração de especificações dos contêineres
+│		 └── runners.py           # Módulo de ações práticas da ferramenta
+├── clientes.sh               # Script para controlar manualmente os contêineres de clientes
+├── ferramenta.py             # Arquivo principal da ferramenta
+├── instalador1.sh            # Script automatizado para instalação das dependências
+├── instalador2.sh            # Script para geração das imagens e artefatos Docker
+├── LICENSE                   # Arquivo de licença da ferramenta (GNU GENERAL PUBLIC LICENSE)
+├── README.md                 # Este arquivo README.ms
+├── requirements.txt          # Arquivo com requisitos de pacotes Python do instalador PIP
+└── servidores.sh             # Script para controlar manualmente os servidores alvo
+```
