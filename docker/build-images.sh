@@ -58,7 +58,7 @@ docker build -t sbrc26-ataque-snmp-scanner -f atacantes/snmp-scanner/Dockerfile 
 docker build -t sbrc26-ataque-sql-injection -f atacantes/sql-injection/Dockerfile .
 docker build -t sbrc26-ataque-ssh-bruteforce -f atacantes/ssh-bruteforce/Dockerfile .
 docker build -t sbrc26-ataque-stp-conf-flood -f atacantes/stp-conf-flood/Dockerfile .
-docker build -t sbrc26-ataque-stp-tcn-flood -f atacantes/stp-tc-flood/Dockerfile .
+docker build -t sbrc26-ataque-stp-tcn-flood -f atacantes/stp-tcn-flood/Dockerfile .
 docker build -t sbrc26-ataque-syn-flood -f atacantes/syn-flood/Dockerfile .
 docker build -t sbrc26-ataque-telnet-bruteforce -f atacantes/telnet-bruteforce/Dockerfile .
 docker build -t sbrc26-ataque-udp-flood -f atacantes/udp-flood/Dockerfile .

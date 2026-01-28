@@ -206,7 +206,7 @@ def start_one_benign_client(running_clients: List[Tuple[str, int]], host_ip: str
     :return: Discionário de parâmetros dos containers de clientes benignos que estão rodando
     :rtype: dict
     """
-        if not docker_available():
+    if not docker_available():
         return {"ok": False, "stderr": "Docker indisponível.", "cmd": []}
 
     if len(running_clients) >= CLIENT_MAX_RUNNING:

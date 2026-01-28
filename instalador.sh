@@ -34,8 +34,12 @@ pip install -r requirements.txt
 python3 setup.py install
 cd ../
 pip install -r requirements.txt
-cd docker/ || exit 1
+echo "Saia desta sessão e logue novamente para prosseguir (necessário para carregar as variáveis de ambiente da instalação do Docker Engine)"
+bash
+cd ~/sbrc26-sf/docker/ || exit 1
 chmod +x build-images.sh
 echo "Construindo os contêineres..."
 ./build-images.sh
+echo "Contêineres criados... Executando Streamlit"
+cd ../
 streamlit run ferramenta.py &
