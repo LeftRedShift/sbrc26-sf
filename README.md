@@ -25,21 +25,24 @@ git clone https://github.com/LeftRedShift/sbrc26-sf.git && cd sbrc26-sf/
 
 ### Instalação automatizada:
 
-#### Estando no diretório raiz deste repositório, tornar executável o script `instalador.sh`::
+#### Estando no diretório raiz deste repositório, tornar executável o script `instalador1.sh`::
 
 ```
-chmod +x instalador.sh
+chmod +x instalador1.sh
 ```
 
-#### Construir **todas as imagens**, subir os servidores e disponibilizar o acesso à ferramenta, rodando o script `instalador.sh`:
+#### Construir **todas as imagens**, subir os servidores e disponibilizar o acesso à ferramenta, rodando o script `instalador1.sh`:
 
 ```
-./instalador.sh
+./instalador1.sh
 ```
+> Responder Sim/Yes para ambos prompts que surgir. Estas perguntas se referem a permitir a captura de pacotes como usuário comum. (Necessário)
 
-> Responder Sim/Yes para ambas telas a seguir.
-> Aguarde o término da instalação.
+Aguarde o término da instalação do `instalador1.sh` e execute o próximo comando.
 
+```
+newgrp docker && ./instalador2.sh
+```
 
 **Nota:** _No ambiente de desenvolvimento mencionado acima, o procedimento levou em média `11 minutos e 30 segundos` para concluir a instalação, baixando cerca de 2.3GB de dados pela internet e resultando no uso de 12GB de espaço adicional em disco._
 

@@ -34,5 +34,4 @@ pip install -r requirements.txt
 python3 setup.py install
 cd ../
 pip install -r requirements.txt
-echo "Instalação de dependências concluída. Execute agora o ./instalador2.sh
-newgrp docker
+echo "Instalação de dependências concluída. Execute agora \" newgrp docker && ./instalador2.sh \""
