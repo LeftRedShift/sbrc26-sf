@@ -21,9 +21,8 @@ sudo apt update
 echo "Instalando Docker Engine..."
 sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 sudo usermod -aG docker $USER
-newgrp docker
 echo "Instalando a ferramenta..."
-chmod +x clientes.sh servidores.sh
+chmod +x clientes.sh servidores.sh instalador2.sh
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
@@ -35,10 +34,5 @@ pip install -r requirements.txt
 python3 setup.py install
 cd ../
 pip install -r requirements.txt
-cd ~/sbrc26-sf/docker/ || exit 1
-chmod +x build-images.sh
-echo "Construindo os contêineres..."
-./build-images.sh
-echo "Contêineres criados... Executando Streamlit"
-cd ../
-streamlit run ferramenta.py &
+echo "Instalação de dependências concluída. Execute agora o ./instalador2.sh
+newgrp docker
