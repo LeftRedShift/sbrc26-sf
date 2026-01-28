@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 
 if [ "${#}" -ne 1 ]; then
-    echo "Necessário passar a ação como parâmetro (parar ou iniciar)"
-    echo "./servidores.sh parar ou ./servidores.sh iniciar"
+    echo "Necessário passar a ação como parâmetro (parar, iniciar ou reiniciar)"
+    echo "./servidores.sh parar ou ./servidores.sh iniciar ou ./servidores.sh reiniciar"
     exit 1
 fi
 
-if [ $( docker images --format table | grep -c sbrc26-clientes ) -ne 1 ]; then
-    echo "UA imagem do cliente está faltando. Certifique-se de ter executado o build-images.sh conforme a documentação."
+if [ $( docker images --format table | grep -c 'sbrc26-servidor-' ) -ne 7 ]; then
+    echo "Uma ou mais imagens de servidor está faltando. Executado o cd ~/sbrc26-sf/docker && ./build-images.sh para reconstruir as imagens."
     exit 1
 fi
 
 function PARAR {
     while read -r SERVER; do
         docker rm -f "${SERVER}"
-    done < <( docker ps -a | grep 'sbrc26-clientes-' | awk '{print $1}' )
+    done < <( docker ps -a | grep 'sbrc26-servidor-' | awk '{print $1}' )
 }
 
 function INICIAR {
@@ -48,7 +48,11 @@ case ${1} in
     iniciar)
         INICIAR
         ;;
+    reiniciar)
+        PARAR
+        INICIAR
+        ;;
     *)
-        echo "Necessário passar a ação como parâmetro (parar ou iniciar)"
+        echo "Necessário passar a ação como parâmetro (parar, iniciar ou reiniciar)"
         ;;
 esac

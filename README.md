@@ -32,29 +32,30 @@ git clone https://github.com/LeftRedShift/sbrc26-sf.git && cd sbrc26-sf/
 chmod +x instalador1.sh
 ```
 
-#### Construir **todas as imagens**, subir os servidores e disponibilizar o acesso à ferramenta, rodando o script `instalador1.sh`:
+#### Instalar **todas as dependências** e instalar a ferramenta, rodando o script `instalador1.sh`:
 
 ```
 ./instalador1.sh
 ```
-
+> Será solicitada a senha do usuário para efetuar as instalações que necessitem de `sudo`.
 Aguarde o término da instalação do `instalador1.sh` e execute o próximo comando.
 
 ```
 newgrp docker
 ```
 
-Após, execute o `instalador2.sh`
+#### Construir todas as imagens e iniciar a ferramenta, rodando o script `instalador2.sh`:
+
 
 ```
 ./instalador2.sh
 ```
 
-**Nota:** _No ambiente de desenvolvimento mencionado acima, os procedimentos de instalação levaram em média `11 minutos e 30 segundos` para concluir, baixando cerca de 2.3GB de dados pela internet e resultando no uso de 12GB de espaço adicional em disco._
+**Nota:** _No ambiente de desenvolvimento mencionado acima, os procedimentos de instalação levaram em média `11 minutos e 30 segundos` para concluir na totalidade, baixando cerca de 2.3GB de dados pela internet e resultando no uso de 12GB de espaço adicional em disco._
 
 Concluída a instalação, a ferramenta estará disponível acessando http://endereço.ip.da.instalação:8501/ ou http://127.0.0.1:8501/ (caso o local da instalação possua um Web Browser).
 
-### Parar ou iniciar os servidores (pós conclusão da instalação, caso deseje):
+### Parar ou iniciar os servidores (pós conclusão da instalação, caso necessário):
 
 #### Estando no diretório raiz deste repositório, tornar executável o script `servidores.sh`::
 
@@ -88,3 +89,13 @@ chmod +x servidores.sh
 ./clientes.sh iniciar
 ```
 > O comando `./clientes.sh iniciar` inicia mais um cliente, independente de quantos já estejam rodando.
+
+
+
+#### Parar e remover containers e imagens residuais (limpeza completa do ambiente).
+
+```
+while read -r CONT; do docker rm -f ${CONT}; done < <( docker ps -a | grep 'sbrc26-' | awk '{print $1}' )
+while read -r IMG; do docker rmi -f ${IMG}; done < <( docker images --format table | grep 'sbrc26-' | awk '{print $3}' )
+
+```

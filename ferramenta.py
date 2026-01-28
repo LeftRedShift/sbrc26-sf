@@ -138,7 +138,7 @@ CLIENT_MAX_RUNNING = 10
 def list_running_benign_clients() -> List[Tuple[str, int]]:
     """
     Retorna lista [(container_name, n)] apenas de containers RUNNING cujo nome
-    casa com ^sbrc26-cliente-(\d{1,2})$.
+    casa com sbrc26-cliente-x.
 
     :return: Lista de containers de clientes benignos que estão rodando
     :rtype: List[Tuple[str, int]]
@@ -194,15 +194,14 @@ def remove_all_benign_clients(running_clients: List[Tuple[str, int]]) -> dict:
     return {"ok": rc == 0, "stdout": out, "stderr": err, "cmd": cmd, "returncode": rc}
 
 
-def start_one_benign_client(running_clients: List[Tuple[str, int]], host_ip: str) -> dict:
-    """Spawna um cliente benigno por clique do botão, até 10
+def start_one_benign_client(running_clients: List[Tuple[str, int]]) -> dict:
+    """
+    Spawna um cliente benigno por clique do botão, até 10
     docker run -d --rm --name sbrc26-cliente-Y sbrc26-clientes:latest "<HOST_IP>"
-    habilitar apenas se count < 10.
+    habilitar apenas se count < 10 e se todos os 7 servidores estiverem rodando.
 
     :param running_clients: Lista de containers de clientes benignos que estão rodando
     :type running_clients: List[Tuple[str, int]]
-    :param host_ip: IP do host
-    :type host_ip: str
     :return: Discionário de parâmetros dos containers de clientes benignos que estão rodando
     :rtype: dict
     """
@@ -212,13 +211,19 @@ def start_one_benign_client(running_clients: List[Tuple[str, int]], host_ip: str
     if len(running_clients) >= CLIENT_MAX_RUNNING:
         return {"ok": False, "stderr": "Limite de 10 clientes benignos já atingido.", "cmd": []}
 
-    if not host_ip or host_ip == "-":
-        return {"ok": False, "stderr": "Não foi possível determinar o IP desta máquina para iniciar o cliente.", "cmd": []}
+    server_ips, missing = get_required_server_ips()
+    if not server_ips:
+        return {
+            "ok": False,
+            "stderr": f"Não é possível iniciar cliente: servidor(es) não estão rodando/sem IP: {', '.join(missing)}",
+            "cmd": [],
+        }
 
     y = next_benign_client_number(running_clients)
     name = f"{CLIENT_NAME_PREFIX}{y}"
 
-    cmd = ["docker", "run", "-d", "--rm", "--name", name, CLIENT_IMAGE, host_ip]
+    # 7 argumentos na ordem definida
+    cmd = ["docker", "run", "-d", "--rm", "--name", name, CLIENT_IMAGE, *server_ips]
     rc, out, err = _run(cmd)
 
     return {
@@ -228,6 +233,7 @@ def start_one_benign_client(running_clients: List[Tuple[str, int]], host_ip: str
         "cmd": cmd,
         "returncode": rc,
         "container_name": name,
+        "server_ips": server_ips,
     }
 
 # -----------------------------
@@ -236,13 +242,23 @@ def start_one_benign_client(running_clients: List[Tuple[str, int]], host_ip: str
 
 # Especificações dos servidores para exibir na barra lateral
 SERVER_SPECS = [
-    ("Servidor Web", "sbrc26-servidor-http-server"),
-    ("Servidor SSH", "sbrc26-servidor-ssh-server"),
+    ("Web Server", "sbrc26-servidor-http-server"),
+    ("SSH Server", "sbrc26-servidor-ssh-server"),
     ("SMB Server", "sbrc26-servidor-smb-server"),
     ("MQTT Broker", "sbrc26-servidor-mqtt-broker"),
     ("CoAP Server", "sbrc26-servidor-coap-server"),
     ("Telnet Server", "sbrc26-servidor-telnet-server"),
     ("SSL Heartbleed", "sbrc26-servidor-ssl-heartbleed"),
+]
+
+BENIGN_CLIENT_SERVER_ORDER = [
+    ("WEB",    "sbrc26-servidor-http-server"),
+    ("SSH",    "sbrc26-servidor-ssh-server"),
+    ("SMB",    "sbrc26-servidor-smb-server"),
+    ("MQTT",   "sbrc26-servidor-mqtt-broker"),
+    ("COAP",   "sbrc26-servidor-coap-server"),
+    ("TELNET", "sbrc26-servidor-telnet-server"),
+    ("SSL",    "sbrc26-servidor-ssl-heartbleed"),
 ]
 
 # Especificações dos logs dos servidores
@@ -386,6 +402,81 @@ def _get_preferred_container_id_by_ancestor(image_base: str) -> Optional[str]:
     """
     ids = _container_ids_by_ancestor(image_base)
     return _pick_preferred_container(ids)
+
+def get_running_container_id_by_ancestor(image_base: str) -> Optional[str]:
+    """
+    Retorna container_id de um container RUNNING cujo ancestor seja image_base ou image_base:latest.
+
+    :param image_base: Nome da imagem
+    :type image_base: str
+    :return: IDs dos containers retornados
+    :rtype: Optional[str]
+    """
+    if not docker_available():
+        return None
+
+    # 1) tenta com :latest
+    rc, out, _ = _run(["docker", "ps", "--filter", f"ancestor={image_base}:latest", "--format", "{{.ID}}"])
+    ids = [x.strip() for x in out.splitlines() if x.strip()]
+    if rc == 0 and ids:
+        return ids[0]
+
+    # 2) tenta sem :latest
+    rc, out, _ = _run(["docker", "ps", "--filter", f"ancestor={image_base}", "--format", "{{.ID}}"])
+    ids = [x.strip() for x in out.splitlines() if x.strip()]
+    if rc == 0 and ids:
+        return ids[0]
+
+    return None
+
+
+def get_container_ip_by_id(cid: str) -> Optional[str]:
+    """
+    IP do container (bridge). Se tiver múltiplas networks, pega o primeiro IP encontrado.
+
+    :param cid: ID do container
+    :type cid: str
+    :return: Entereço IP como string
+    :rtype: Optional[str]
+    """
+    if not cid:
+        return None
+    rc, out, err = _run([
+        "docker", "inspect",
+        "-f", "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}",
+        cid
+    ])
+    if rc != 0:
+        return None
+    ips = [x for x in out.strip().split() if x]
+    return ips[0] if ips else None
+
+
+def get_required_server_ips() -> Tuple[Optional[List[str]], List[str]]:
+    """
+    Retorna (ips_em_ordem, missing_labels).
+    missing_labels contém os "WEB/SSH/..." que não estão rodando ou sem IP.
+
+    :return: Retorna IPs dos servidores
+    :rtype: Tuple[Optional[List[str]], List[str]]
+    """
+    missing: List[str] = []
+    ips: List[str] = []
+
+    for label, image_base in BENIGN_CLIENT_SERVER_ORDER:
+        cid = get_running_container_id_by_ancestor(image_base)
+        if not cid:
+            missing.append(label)
+            continue
+        ip = get_container_ip_by_id(cid)
+        if not ip:
+            missing.append(label)
+            continue
+        ips.append(ip)
+
+    if missing:
+        return None, missing
+    return ips, []
 
 # -----------------------------
 # Logs dos servidores (view)
@@ -810,9 +901,6 @@ def render_view_dataset_view() -> None:
 def render_view_features_view() -> None:
     """
     Funções streamlit para montar o módulo de visualização de features extraídas
-
-    :return: _description_
-    :rtype: _type_
     """
     st.subheader("Features extraídas")
     top = st.columns([1, 3])
@@ -1005,12 +1093,20 @@ st.sidebar.header("Clientes benignos")
 running_clients = list_running_benign_clients()
 x = len(running_clients)
 
-st.sidebar.write(f"Clientes benignos: **{x}**")
+server_ips, missing_servers = get_required_server_ips()
+servers_ok = (server_ips is not None)
 
-cA, cB = st.sidebar.columns([1, 1], gap="small")
-
+# desabilita se docker indisponível OU >=10 OU servers não OK
 remove_disabled = (x == 0) or (not docker_available())
-start_disabled = (x >= CLIENT_MAX_RUNNING) or (not docker_available())
+start_disabled = (x >= CLIENT_MAX_RUNNING) or (not docker_available()) or (not servers_ok)
+
+st.sidebar.write(f"Clientes benignos: **{x}**")
+cA, cB = st.sidebar.columns([1, 1], gap="small")
+if not servers_ok:
+    st.sidebar.warning(
+        "Para iniciar clientes benignos, todos os 7 servidores devem estar rodando. "
+        f"Faltando: {', '.join(missing_servers)}"
+    )
 
 if cA.button("Remover todos os clientes", disabled=remove_disabled, use_container_width=True):
     res = remove_all_benign_clients(running_clients)

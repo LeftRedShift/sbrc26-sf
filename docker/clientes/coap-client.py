@@ -8,4 +8,5 @@ async def main(var):
     response = await protocol.request(request).response
 
 if __name__ == "__main__":
+    svar_string = sys.argv[2]
     asyncio.run(main(0))
