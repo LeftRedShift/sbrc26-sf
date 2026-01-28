@@ -109,16 +109,16 @@ sbrc26-sf
 ├── captures/                 # Diretório de armazenamento das capturas .pcap
 ├── datasets/                 # Diretório de datasets gerados
 ├── docker/                   # Repositório de contêineres
-│		├── atacantes/           # Diretório dos contêineres atacantes
-│		├── build-images.sh      # Script de construção de todas as imagens
-│		├── clientes/            # Diretório dos contêineres clientes (benignos)
-│		└── servidores/          # Diretório dos contêineres servidores alvo
+│   ├── atacantes/            # Diretório dos contêineres atacantes
+│   ├── build-images.sh       # Script de construção de todas as imagens
+│   ├── clientes/             # Diretório dos contêineres clientes (benignos)
+│   └── servidores/           # Diretório dos contêineres servidores alvo
 ├── features/                 # Diretório dos CSV de extração de features
 ├── modules/                  # Diretório dos módulos da ferramenta
-│		├── datasets.py          # Módulo de geração de datasets
-│		├── features.py          # Módulo de extração de features
-│		├── registry.py          # Módulo de declaração de especificações dos contêineres
-│		└── runners.py           # Módulo de ações práticas da ferramenta
+│   ├── datasets.py           # Módulo de geração de datasets
+│   ├── features.py           # Módulo de extração de features
+│   ├── registry.py           # Módulo de declaração de especificações dos contêineres
+│   └── runners.py            # Módulo de ações práticas da ferramenta
 ├── clientes.sh               # Script para controlar manualmente os contêineres de clientes
 ├── ferramenta.py             # Arquivo principal da ferramenta
 ├── instalador1.sh            # Script automatizado para instalação das dependências
