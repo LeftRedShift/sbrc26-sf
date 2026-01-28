@@ -15,6 +15,7 @@
 - 8 GB de RAM
 - 15GB de espaço disponível
 - Acesso à internet
+- Usuário com permissão de execução de `sudo`
 
 > Os pacotes que serão instalados são bastante comuns e não devem causar nenhum tipo de distúrbio no ambiente onde for instalado, apesar disto, sugere-se fortemente que a instalação desta ferramenta seja realizada em uma instalação nova do Sistema Operacional própria para este fim, no intuito de não interferir de alguma forma não intencional no ambiente do operador que estará efetuando a instalação.
 
@@ -36,15 +37,20 @@ chmod +x instalador1.sh
 ```
 ./instalador1.sh
 ```
-> Responder Sim/Yes para ambos prompts que surgir. Estas perguntas se referem a permitir a captura de pacotes como usuário comum. (Necessário)
 
 Aguarde o término da instalação do `instalador1.sh` e execute o próximo comando.
 
 ```
-newgrp docker && ./instalador2.sh
+newgrp docker
 ```
 
-**Nota:** _No ambiente de desenvolvimento mencionado acima, o procedimento levou em média `11 minutos e 30 segundos` para concluir a instalação, baixando cerca de 2.3GB de dados pela internet e resultando no uso de 12GB de espaço adicional em disco._
+Após, execute o `instalador2.sh`
+
+```
+./instalador2.sh
+```
+
+**Nota:** _No ambiente de desenvolvimento mencionado acima, os procedimentos de instalação levaram em média `11 minutos e 30 segundos` para concluir, baixando cerca de 2.3GB de dados pela internet e resultando no uso de 12GB de espaço adicional em disco._
 
 Concluída a instalação, a ferramenta estará disponível acessando http://endereço.ip.da.instalação:8501/ ou http://127.0.0.1:8501/ (caso o local da instalação possua um Web Browser).
 
