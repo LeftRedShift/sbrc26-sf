@@ -9,7 +9,7 @@ import time
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Union, Optional, Tuple
 
 import streamlit as st
 
@@ -318,6 +318,62 @@ if "view" not in st.session_state:
 # -----------------------------
 # Docker helpers (inspect/list)
 # -----------------------------
+
+_MITRE_PATH_RE = re.compile(
+    r"/(?P<kind>techniques|tactics)/(?P<id>[^/?#]+(?:/[^/?#]+)?)",
+    re.IGNORECASE,
+)
+
+def normalize_mitre(mitre: Optional[Union[str, List[str]]]) -> List[str]:
+    """
+    Normalização dos links de referência do MITRE ATT&CK
+
+    :param mitre: Descrição da técnica
+    :type mitre: Optional[Union[str, List[str]]]
+    :return: Lista de técnicas
+    :rtype: List[str]
+    """
+    if not mitre:
+        return []
+    if isinstance(mitre, str):
+        return [mitre]
+    return [m for m in mitre if isinstance(m, str) and m.strip()]
+
+def mitre_label_from_url(url: str) -> str:
+    """
+    Extrai label após 'techniques/' ou 'tactics/'.
+    Ex.:
+      .../techniques/T1595/003/ -> T1595/003
+      .../techniques/T1018/     -> T1018
+      .../tactics/TA0007/       -> TA0007
+    """
+    m = _MITRE_PATH_RE.search(url)
+    if not m:
+        return url.rstrip("/")
+
+    label = m.group("id").rstrip("/")
+    return label
+
+
+def render_mitre_links(mitre: Optional[Union[str, List[str]]]) -> None:
+    """
+    Retorna lista de URLs
+
+    :param mitre: Lista de URLs
+    :type mitre: Optional[Union[str, List[str]]]
+    """
+    urls = normalize_mitre(mitre)
+    if not urls:
+        return
+
+    parts = []
+    for u in urls:
+        label = mitre_label_from_url(u)
+        # Link com aparência de inline code (`...`)
+        parts.append(f'<a href="{u}" target="_blank"><code>{label}</code></a>')
+
+    st.markdown("MITRE ATT&CK: " + " ".join(parts), unsafe_allow_html=True)
+
 def _container_ids_by_ancestor(image: str) -> List[str]:
     """
     Busca id real do container associado a imagem
@@ -1438,8 +1494,7 @@ def category_tab_ui(category_name: str, attacks: List[AttackSpec]) -> None:
         st.markdown(f"Descrição: {spec.description}")
         st.markdown(f"Imagem: `{spec.image}`")
         st.markdown(f"Container (nome): `{spec.container_name}`")
-        if getattr(spec, "mitre", None):
-            st.markdown("Classificação MITRE: %s" % spec.mitre)
+        render_mitre_links(getattr(spec, "mitre", None))
         if getattr(spec, "details_warning", None):
             st.warning(spec.details_warning)
         st.markdown("### Execução")
