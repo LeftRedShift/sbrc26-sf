@@ -134,11 +134,11 @@ sbrc26-sf
 
 ## Apresentação e operação da ferramenta:
 
-#### Tela principal: Acessível em http://seu.endereço.ip:8501/
+### Tela principal: Acessível em http://seu.endereço.ip:8501/
 
 ![assets/1.png](assets/1.png)
 
-#### Funções da tela principal:
+### Funções da tela principal:
 
 ![assets/2.png](assets/2.png)
 
@@ -152,7 +152,7 @@ sbrc26-sf
 8. Parâmetros de execução do ataque (Endereço IP e Porta do alvo, quando aplicável) e seletor de captura de pacotes simultânea
 9. Menu de operações sobre capturas já realizadas
 
-#### Funções relativas aos logs dos servidores alvo:
+### Funções relativas aos logs dos servidores alvo:
 
 ![assets/3.png](assets/3.png)
 
@@ -164,7 +164,7 @@ sbrc26-sf
 6. Exibição dos logs
 7. Botão para voltar a tela anterior
 
-#### Funções relativas controle dos clientes benignos:
+### Funções relativas controle dos clientes benignos:
 
 ![assets/4.png](assets/4.png)
 
@@ -173,7 +173,7 @@ sbrc26-sf
 3. Botão para iniciar mais um cliente benigno (máximo de 10 para fins de demonstração)
 4. Informação adicional sobre os clientes benignos em execução
 
-#### Funções referentes a execução de um ataque:
+### Funções referentes a execução de um ataque:
 
 ![assets/5.png](assets/5.png)
 
@@ -189,7 +189,7 @@ sbrc26-sf
 10. Botão para forçar a atualização do status da execução
 11. Botão para interromper imediatamente o container do atacante
 
-#### Funções referentes à manipulação de arquivos de captura:
+### Funções referentes à manipulação de arquivos de captura:
 
 ![assets/6.png](assets/6.png)
 
@@ -200,7 +200,7 @@ sbrc26-sf
 5. Botão para efetuar o download do arquivo de captura
 6. Botão para acionar o módulo de extração de features
 
-#### Funções referentes ao módulo de extração de features de um arquivo de captura:
+### Funções referentes ao módulo de extração de features de um arquivo de captura:
 
 ![assets/7.png](assets/7.png)
 
@@ -212,7 +212,7 @@ sbrc26-sf
 6. Seletor para forçar a reescrita dos arquivos `.csv` caso estes já existam de processamento anterior
 7. Botão para a execução da extração das features conforme as opções selecionadas
 
-#### Tela de resumo do processamento de features:
+### Tela de resumo do processamento de features:
 
 ![assets/8.png](assets/8.png)
 
@@ -220,16 +220,16 @@ sbrc26-sf
 2. Status da execução da extração com Dumpcap TShark (somente se selecionado na tela anterior) e arquivo resultante salvo em `/features`
 3. Status da execução da extração com Python Scapy (somente se selecionado na tela anterior) e arquivo resultante salvo em `/features`
 
-#### Funções referentes a pré-visualização das features extraídas e geração de dataset:
+### Funções referentes a pré-visualização das features extraídas e geração de dataset:
 
 ![assets/9.png](assets/9.png)
 
-> Perceba que após um arquivo de captura ter features extraídas, são habilidados os botões adicionais
+> Note que após um arquivo de captura ter features extraídas, são habilidados os botões adicionais
 1. Nome do arquivo de captura
 2. Botão para pré-visualização no navegador as features extraídas
 3. Botão para gerar dataset de fluxos consolidados da extração de features já realizada
 
-#### Tela de pré-visualização de features extraídas:
+### Tela de pré-visualização de features extraídas:
 
 ![assets/10.png](assets/10.png)
 
@@ -240,14 +240,14 @@ sbrc26-sf
 5. Seletor do número de linhas para exibição (50 por padrão)
 6. Tabela de visualização da fonte de dados selecionada
 
-#### Geração de dataset de fluxos consolidados de extração de features já realizada:
+### Geração de dataset de fluxos consolidados de extração de features já realizada:
 
 ![assets/11.png](assets/11.png)
 
 1. Nome do arquivo de captura
 2. Botão para gerar o dataset em `datasets/`
 
-#### Função para pré-visualização de dataset gerado:
+### Função para pré-visualização de dataset gerado:
 
 ![assets/12.png](assets/12.png)
 
