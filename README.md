@@ -65,6 +65,9 @@ Concluída a instalação, a ferramenta estará disponível acessando http://end
 
 [![video-demonstracao-instalacao](https://img.youtube.com/vi/fx2Z5ZD_Rbo/0.jpg)](https://www.youtube.com/watch?v=fx2Z5ZD_Rbo)
 
+
+<iframe width="820" height="460" src="https://www.youtube.com/watch?v=fx2Z5ZD_Rbo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 ---
 
 ## Procedimentos pós-instalação (opcionais e caso necessário):
