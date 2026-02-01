@@ -12,14 +12,15 @@
 
 ### Ambiente e configurações mínimas para execução:
 - Dispositivo Bare-metal ou VM com Sistema Operacional baseado em Ubuntu 24.04 LTS
-  - Computador com Web Browser com acesso à rede da instalação (caso a instalação seja realizada em outro servidor ou VM)
+  - Dispositivo com navegador de internet que possua acesso à rede da instalação (caso a instalação seja realizada em outro computador/VM)
 - Processador baseado em arquitetura x86/AMD64
 - 8 GB de RAM
 - 15GB de espaço disponível
 - Acesso à internet
+- Navegador de internet
 - Usuário com permissão de execução de `sudo`
 
-> Os pacotes que serão instalados são bastante comuns e não devem causar nenhum tipo de distúrbio no ambiente onde for instalado, apesar disto, sugere-se fortemente que a instalação desta ferramenta seja realizada em uma instalação nova do Sistema Operacional própria para este fim, no intuito de não interferir de alguma forma não intencional no ambiente do operador que estará efetuando a instalação.
+> Os pacotes que serão instalados são bastante comuns e não devem causar nenhum tipo de distúrbio no ambiente onde for instalado, apesar disto, ***sugere-se fortemente*** que a instalação desta ferramenta seja realizada em uma instalação nova de Sistema Operacional, própria para este fim de demonstração da ferramenta, no intuito de não interferir de alguma forma não intencional no ambiente do operador que efetuará uma instalação.
 
 ---
 
@@ -44,7 +45,7 @@ chmod +x instalador1.sh
 ./instalador1.sh
 ```
 
-Aguarde o término da instalação do `instalador1.sh` e execute o próximo comando.
+Aguarde o término da instalação das dependências e da ferramenta através do `instalador1.sh` e execute o próximo comando.
 
 ```
 newgrp docker
@@ -60,25 +61,29 @@ newgrp docker
 
 Concluída a instalação, a ferramenta estará disponível acessando http://endereço.ip.da.instalação:8501/ ou http://127.0.0.1:8501/ (caso o local da instalação possua um Web Browser).
 
+### Vídeo de demonstração da instalação da ferramenta em uma VM nova:
+
+[![video-demonstracao-instalacao](https://img.youtube.com/vi/fx2Z5ZD_Rbo/0.jpg)](https://www.youtube.com/watch?v=fx2Z5ZD_Rbo)
+
 ---
 
-## Procedimentos pós instalação (opcionais e caso necessário):
+## Procedimentos pós-instalação (opcionais e caso necessário):
 
 ### Parar, iniciar ou reiniciar os servidores (estando no diretório raiz deste repositório):
 
-#### Parar e remover os contêiners dos servidores:
+#### Parar e remover os contêineres dos servidores:
 
 ```
 ./servidores.sh parar
 ```
 
-#### Iniciar os contêiners dos servidores:
+#### Iniciar os contêineres dos servidores:
 
 ```
 ./servidores.sh iniciar
 ```
 
-#### Reiniciar os contêiners dos servidores:
+#### Reiniciar os contêineres dos servidores:
 
 ```
 ./servidores.sh reiniciar
@@ -86,7 +91,7 @@ Concluída a instalação, a ferramenta estará disponível acessando http://end
 
 ### Parar ou iniciar os clientes "benignos" (estando no diretório raiz deste repositório):
 
-#### Parar e remover os contêiners dos clientes:
+#### Parar e remover os contêineres dos clientes:
 
 ```
 ./clientes.sh parar
@@ -99,14 +104,14 @@ Concluída a instalação, a ferramenta estará disponível acessando http://end
 ```
 > O comando `./clientes.sh iniciar` inicia mais um cliente, independente de quantos já estejam rodando.
 
-#### Parar e remover containers e imagens residuais (limpeza completa do ambiente).
+#### Parar e remover contêineres e imagens residuais (limpeza completa do ambiente).
 
 ```
 while read -r CONT; do docker rm -f ${CONT}; done < <( docker ps -a | grep 'sbrc26-' | awk '{print $1}' )
 while read -r IMG; do docker rmi -f ${IMG}; done < <( docker images --format table | grep 'sbrc26-' | awk '{print $3}' )
 
 ```
-> Para todos os contêiners e remove todas as imagens que contenham `sbrc26-` no nome.
+> Este comando para todos os contêineres e remove todas as imagens que contenham `sbrc26-` no nome.
 
 ---
 
@@ -126,21 +131,21 @@ sbrc26-sf
 ├── modules/                  # Diretório dos módulos da ferramenta
 │   ├── datasets.py           # Módulo de geração de datasets
 │   ├── features.py           # Módulo de extração de features
-│   ├── registry.py           # Módulo de declaração de especificações dos contêineres
+│   ├── registry.py           # Módulo de declaração das especificações dos contêineres
 │   └── runners.py            # Módulo de ações práticas da ferramenta
 ├── clientes.sh               # Script para controlar manualmente os contêineres de clientes
 ├── ferramenta.py             # Arquivo principal da ferramenta
 ├── instalador1.sh            # Script automatizado para instalação das dependências
 ├── instalador2.sh            # Script para geração das imagens e artefatos Docker
 ├── LICENSE                   # Arquivo de licença da ferramenta (GNU GENERAL PUBLIC LICENSE)
-├── README.md                 # Este arquivo README.ms
+├── README.md                 # Este arquivo README.md
 ├── requirements.txt          # Arquivo com requisitos de pacotes Python do instalador PIP
 └── servidores.sh             # Script para controlar manualmente os servidores alvo
 ```
 
 ---
 
-## Documentação das funções (autogerado por documentação inline do tipo Docstrings) via Sphinx:
+## Documentação das funções (gerado por documentação inline do tipo Docstrings junto ao código) via Sphinx:
 
 [https://github.com/LeftRedShift/leftredshift.github.io](https://leftredshift.github.io/modules)
 
@@ -275,3 +280,9 @@ sbrc26-sf
 2. Botões para efetuar o download do arquivo `.csv` disponível
 3. Seletor do número de linhas para exibição (200 por padrão), máximo de colunas (80 por padrão) e campo de busca/filtragem
 4. Tabela de visualização do dataset
+
+---
+
+## Vídeo de demonstração do uso da ferramenta:
+
+[![video-demonstracao-uso](https://img.youtube.com/vi/fx2Z5ZD_Rbo/0.jpg)](https://www.youtube.com/watch?v=fx2Z5ZD_Rbo)
