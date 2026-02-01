@@ -100,6 +100,12 @@ while read -r IMG; do docker rmi -f ${IMG}; done < <( docker images --format tab
 
 ```
 
+## Apresentação e operação da ferramenta:
+
+#### - Tela inicial: Disponível em http://seu.endereço.ip:8501/
+
+![assets/1.png](assets/1.png)
+
 
 ## Estrutura do projeto:
 ```

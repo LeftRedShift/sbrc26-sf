@@ -57,7 +57,6 @@ def A(
         mitre=mitre,
     )
 
-
 # Categorias em abas
 CATEGORIES: Dict[str, List[AttackSpec]] = {
     "1) Ataques de Aplicação Web": [

@@ -10,9 +10,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Union, Optional, Tuple
-
 import streamlit as st
-
 from modules.registry import CATEGORIES, AttackSpec, ParamSpec
 from modules.runners import (
     docker_available,
@@ -866,7 +864,7 @@ def render_view_dataset_view() -> None:
     """
     Funções streamlit para montar o módulo de visualização dos datasets
     """
-    st.subheader("Dataset (não-supervidionado)")
+    st.subheader("Dataset (não-supervisionado)")
 
     top = st.columns([1, 1, 3])
     if top[0].button("Voltar"):
