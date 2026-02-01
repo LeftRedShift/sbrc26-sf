@@ -1,5 +1,7 @@
 # sbrc26-sf - Salão de Ferramentas SBRC 2026
 
+## Informações sobre o ambiente e requisitos:
+
 ### Ambiente de desenvolvimento (apenas para referência):
 - Sistema Operacional Host: Kubuntu Desktop 24.04 LTS
 - Processador AMD Ryzen 5 5600X
@@ -19,6 +21,10 @@
 
 > Os pacotes que serão instalados são bastante comuns e não devem causar nenhum tipo de distúrbio no ambiente onde for instalado, apesar disto, sugere-se fortemente que a instalação desta ferramenta seja realizada em uma instalação nova do Sistema Operacional própria para este fim, no intuito de não interferir de alguma forma não intencional no ambiente do operador que estará efetuando a instalação.
 
+---
+
+## Procedimentos de instalação:
+
 ### Clonar e entrar no repositório:
 ```
 git clone https://github.com/LeftRedShift/sbrc26-sf.git && cd sbrc26-sf/
@@ -37,7 +43,7 @@ chmod +x instalador1.sh
 ```
 ./instalador1.sh
 ```
-> Será solicitada a senha do usuário para efetuar as instalações que necessitem de `sudo`.
+
 Aguarde o término da instalação do `instalador1.sh` e execute o próximo comando.
 
 ```
@@ -46,24 +52,21 @@ newgrp docker
 
 #### Construir todas as imagens e iniciar a ferramenta, rodando o script `instalador2.sh`:
 
-
 ```
 ./instalador2.sh
 ```
 
-**Nota:** _No ambiente de desenvolvimento mencionado acima, os procedimentos de instalação levaram em média `11 minutos e 30 segundos` para concluir na totalidade, baixando cerca de 2.3GB de dados pela internet e resultando no uso de 12GB de espaço adicional em disco._
+**Nota:** _No ambiente de desenvolvimento mencionado acima, os procedimentos de instalação levaram em média `11 minutos e 30 segundos` para concluir na totalidade, baixando cerca de 2.3GB de dados pela internet e resultando no uso de 12GB de espaço adicional em disco. Este tempo deve variar conforme os recursos do ambiente de cada instalação._
 
 Concluída a instalação, a ferramenta estará disponível acessando http://endereço.ip.da.instalação:8501/ ou http://127.0.0.1:8501/ (caso o local da instalação possua um Web Browser).
 
-### Parar ou iniciar os servidores (pós conclusão da instalação, caso necessário):
+---
 
-#### Estando no diretório raiz deste repositório, tornar executável o script `servidores.sh`::
+## Procedimentos pós instalação (opcionais e caso necessário):
 
-```
-chmod +x servidores.sh
-```
+### Parar, iniciar ou reiniciar os servidores (estando no diretório raiz deste repositório):
 
-#### Estando no diretório raiz deste repositório, para parar e remover os contêiners dos servidores:
+#### Parar e remover os contêiners dos servidores:
 
 ```
 ./servidores.sh parar
@@ -75,9 +78,15 @@ chmod +x servidores.sh
 ./servidores.sh iniciar
 ```
 
-### Parar ou iniciar os clientes "benignos" (pós conclusão da instalação caso deseje):
+#### Reiniciar os contêiners dos servidores:
 
-#### Estando no diretório raiz deste repositório, para parar e remover os contêiners dos clientes:
+```
+./servidores.sh reiniciar
+```
+
+### Parar ou iniciar os clientes "benignos" (estando no diretório raiz deste repositório):
+
+#### Parar e remover os contêiners dos clientes:
 
 ```
 ./clientes.sh parar
@@ -90,8 +99,6 @@ chmod +x servidores.sh
 ```
 > O comando `./clientes.sh iniciar` inicia mais um cliente, independente de quantos já estejam rodando.
 
-
-
 #### Parar e remover containers e imagens residuais (limpeza completa do ambiente).
 
 ```
@@ -99,6 +106,9 @@ while read -r CONT; do docker rm -f ${CONT}; done < <( docker ps -a | grep 'sbrc
 while read -r IMG; do docker rmi -f ${IMG}; done < <( docker images --format table | grep 'sbrc26-' | awk '{print $3}' )
 
 ```
+> Para todos os contêiners e remove todas as imagens que contenham `sbrc26-` no nome.
+
+---
 
 ## Estrutura do projeto:
 ```
@@ -128,9 +138,13 @@ sbrc26-sf
 └── servidores.sh             # Script para controlar manualmente os servidores alvo
 ```
 
+---
+
 ## Documentação das funções (autogerado por documentação inline do tipo Docstrings) via Sphinx:
 
 [https://github.com/LeftRedShift/leftredshift.github.io](https://leftredshift.github.io/modules)
+
+---
 
 ## Apresentação e operação da ferramenta:
 
