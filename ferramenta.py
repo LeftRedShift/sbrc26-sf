@@ -366,7 +366,6 @@ def render_mitre_links(mitre: Optional[Union[str, List[str]]]) -> None:
     parts = []
     for u in urls:
         label = mitre_label_from_url(u)
-        # Link com aparência de inline code (`...`)
         parts.append(f'<a href="{u}" target="_blank"><code>{label}</code></a>')
 
     st.markdown("Categorias MITRE ATT&CK: " + " ".join(parts), unsafe_allow_html=True)
@@ -374,9 +373,14 @@ def render_mitre_links(mitre: Optional[Union[str, List[str]]]) -> None:
 def normalize_tools(tools: Optional[List[Dict[str, str]]]) -> List[Dict[str, str]]:
     """
     Aceita dois formatos:
-      A) [{"name": "Python", "url": "https://..."}]
-      B) [{"Python": "https://..."}, {"Streamlit": "https://..."}]
+    [{"name": "Python", "url": "https://..."}]
+    [{"Python": "https://..."}, {"Streamlit": "https://..."}]
     Normaliza para lista de {"name":..., "url":...}
+
+    :param tools: Retorna nome da ferramenta e URL
+    :type tools: Optional[List[Dict[str, str]]]
+    :return: Informações em formato esperado pelo render
+    :rtype: List[Dict[str, str]]
     """
     if not tools:
         return []
@@ -386,7 +390,6 @@ def normalize_tools(tools: Optional[List[Dict[str, str]]]) -> List[Dict[str, str
         if not isinstance(item, dict) or not item:
             continue
 
-        # Formato A
         if "name" in item and "url" in item:
             name = str(item.get("name", "")).strip()
             url = str(item.get("url", "")).strip()
@@ -394,7 +397,6 @@ def normalize_tools(tools: Optional[List[Dict[str, str]]]) -> List[Dict[str, str
                 norm.append({"name": name, "url": url})
             continue
 
-        # Formato B (dict unitário: {"Python": "https://..."})
         if len(item) == 1:
             name, url = next(iter(item.items()))
             name = str(name).strip()
@@ -402,11 +404,15 @@ def normalize_tools(tools: Optional[List[Dict[str, str]]]) -> List[Dict[str, str
             if name and url:
                 norm.append({"name": name, "url": url})
             continue
-
-        # Se vier outro formato inesperado, ignore para não quebrar a UI
     return norm
 
 def render_tools_links(tools: Optional[List[Dict[str, str]]]) -> None:
+    """
+    Renderiza nomes das ferramentas registradas nas especificações
+
+    :param tools: Lista de dicionários Nome : URL
+    :type tools: Optional[List[Dict[str, str]]]
+    """
     items = normalize_tools(tools)
     if not items:
         return

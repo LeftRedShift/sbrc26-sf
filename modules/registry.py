@@ -24,7 +24,6 @@ class AttackSpec:
     tools: Optional[List[Dict[str, str]]] = None
 
     def runner(self, resolved_params: Dict[str, Any]) -> Dict[str, Any]:
-        # A ordem dos args segue a ordem dos ParamSpec
         args = [str(resolved_params[p.key]) for p in self.params]
         return docker_run_detached(
             image=self.image,
@@ -44,15 +43,13 @@ def A(
     mitre: Optional[Union[str, List[str]]] = None,
     tools: Optional[List[Dict[str, str]]] = None,
 ) -> AttackSpec:
-    """
-    Helper: padroniza image/container_name baseado no image_base informado.
-    """
+
     return AttackSpec(
         id=id,
         name=name,
         description=description,
         image=f"{image_base}:latest",
-        container_name=image_base,  # nome do container = base
+        container_name=image_base,
         params=params or [],
         no_params_note=no_params_note,
         details_warning=details_warning,
@@ -60,7 +57,6 @@ def A(
         tools=tools,
     )
 
-# Categorias em abas
 CATEGORIES: Dict[str, List[AttackSpec]] = {
     "1) Ataques de Aplicação Web": [
         A(
