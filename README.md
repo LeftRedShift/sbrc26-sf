@@ -104,7 +104,13 @@ Concluída a instalação, a ferramenta estará disponível acessando http://end
 ```
 > O comando `./clientes.sh iniciar` inicia mais um cliente, independente de quantos já estejam rodando.
 
-#### Parar e remover contêineres e imagens residuais (limpeza completa do ambiente).
+### Iniciar a ferramenta (estando no diretório raiz deste repositório):
+```
+source .venv/bin/activate
+streamlit run ferramenta.py
+```
+
+#### Parar e remover contêineres e imagens residuais (limpeza completa do ambiente):
 
 ```
 while read -r CONT; do docker rm -f ${CONT}; done < <( docker ps -a | grep 'sbrc26-' | awk '{print $1}' )
