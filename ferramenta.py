@@ -352,7 +352,6 @@ def mitre_label_from_url(url: str) -> str:
     label = m.group("id").rstrip("/")
     return label
 
-
 def render_mitre_links(mitre: Optional[Union[str, List[str]]]) -> None:
     """
     Retorna lista de URLs
@@ -370,7 +369,55 @@ def render_mitre_links(mitre: Optional[Union[str, List[str]]]) -> None:
         # Link com aparência de inline code (`...`)
         parts.append(f'<a href="{u}" target="_blank"><code>{label}</code></a>')
 
-    st.markdown("MITRE ATT&CK: " + " ".join(parts), unsafe_allow_html=True)
+    st.markdown("Categorias MITRE ATT&CK: " + " ".join(parts), unsafe_allow_html=True)
+
+def normalize_tools(tools: Optional[List[Dict[str, str]]]) -> List[Dict[str, str]]:
+    """
+    Aceita dois formatos:
+      A) [{"name": "Python", "url": "https://..."}]
+      B) [{"Python": "https://..."}, {"Streamlit": "https://..."}]
+    Normaliza para lista de {"name":..., "url":...}
+    """
+    if not tools:
+        return []
+
+    norm: List[Dict[str, str]] = []
+    for item in tools:
+        if not isinstance(item, dict) or not item:
+            continue
+
+        # Formato A
+        if "name" in item and "url" in item:
+            name = str(item.get("name", "")).strip()
+            url = str(item.get("url", "")).strip()
+            if name and url:
+                norm.append({"name": name, "url": url})
+            continue
+
+        # Formato B (dict unitário: {"Python": "https://..."})
+        if len(item) == 1:
+            name, url = next(iter(item.items()))
+            name = str(name).strip()
+            url = str(url).strip()
+            if name and url:
+                norm.append({"name": name, "url": url})
+            continue
+
+        # Se vier outro formato inesperado, ignore para não quebrar a UI
+    return norm
+
+def render_tools_links(tools: Optional[List[Dict[str, str]]]) -> None:
+    items = normalize_tools(tools)
+    if not items:
+        return
+
+    parts = []
+    for it in items:
+        name = it["name"]
+        url = it["url"]
+        parts.append(f'<a href="{url}" target="_blank"><code>{name}</code></a>')
+
+    st.markdown("Ferramentas: " + " ".join(parts), unsafe_allow_html=True)
 
 def _container_ids_by_ancestor(image: str) -> List[str]:
     """
@@ -1490,8 +1537,10 @@ def category_tab_ui(category_name: str, attacks: List[AttackSpec]) -> None:
         st.markdown(f"ID: `{spec.id}`")
         st.markdown(f"Nome: {spec.name}")
         st.markdown(f"Descrição: {spec.description}")
-        st.markdown(f"Imagem: `{spec.image}`")
-        st.markdown(f"Container (nome): `{spec.container_name}`")
+        render_tools_links(getattr(spec, "tools", None))
+        with st.expander("Detalhes do container", expanded=False):
+            st.markdown(f"Image: `{spec.image}`")
+            st.markdown(f"Nome: `{spec.container_name}`")
         render_mitre_links(getattr(spec, "mitre", None))
         if getattr(spec, "details_warning", None):
             st.warning(spec.details_warning)

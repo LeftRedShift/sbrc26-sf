@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Union, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 from modules.runners import docker_run_detached
 
 @dataclass(frozen=True)
@@ -21,6 +21,7 @@ class AttackSpec:
     no_params_note: Optional[str] = None
     details_warning: Optional[str] = None
     mitre: Optional[Union[str, List[str]]] = None
+    tools: Optional[List[Dict[str, str]]] = None
 
     def runner(self, resolved_params: Dict[str, Any]) -> Dict[str, Any]:
         # A ordem dos args segue a ordem dos ParamSpec
@@ -41,6 +42,7 @@ def A(
     no_params_note: Optional[str] = None,
     details_warning: Optional[str] = None,
     mitre: Optional[Union[str, List[str]]] = None,
+    tools: Optional[List[Dict[str, str]]] = None,
 ) -> AttackSpec:
     """
     Helper: padroniza image/container_name baseado no image_base informado.
@@ -55,6 +57,7 @@ def A(
         no_params_note=no_params_note,
         details_warning=details_warning,
         mitre=mitre,
+        tools=tools,
     )
 
 # Categorias em abas
@@ -75,6 +78,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0001/", 
                 "https://attack.mitre.org/techniques/T1190/", 
             ],
+            tools=[
+                {"ffuf": "https://github.com/ffuf/ffuf"},
+            ],
         ),
 
         A(
@@ -89,6 +95,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
             mitre=[
                 "https://attack.mitre.org/tactics/TA0001/", 
                 "https://attack.mitre.org/techniques/T1190/", 
+            ],
+            tools=[
+                {"ffuf": "https://github.com/ffuf/ffuf"},
             ],
         ),
         A(
@@ -105,6 +114,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0001/", 
                 "https://attack.mitre.org/techniques/T1190/", 
                 "https://attack.mitre.org/techniques/T1595/002/", 
+            ],
+            tools=[
+                {"sqlmap": "https://github.com/sqlmapproject/sqlmap"},
             ],
         ),
         A(
@@ -124,6 +136,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0043/", 
                 "https://attack.mitre.org/techniques/T1595/003/", 
             ],
+            tools=[
+                {"gobuster": "https://github.com/OJ/gobuster"},
+            ],
         ),
         A(
             id="web_https_heartbleed",
@@ -139,6 +154,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0001/", 
                 "https://attack.mitre.org/techniques/T1190/", 
                 "https://attack.mitre.org/techniques/T1595/002/", 
+            ],
+            tools=[
+                {"ssltest": "https://github.com/sensepost/heartbleed-poc"},
             ],
         ),
         A(
@@ -159,6 +177,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1110/001/", 
                 "https://attack.mitre.org/techniques/T1110/", 
             ],
+            tools=[
+                {"ffuf": "https://github.com/ffuf/ffuf"},
+            ],
         ),
         A(
             id="web_simple_scanner",
@@ -172,6 +193,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
             mitre=[
                 "https://attack.mitre.org/tactics/TA0043/", 
                 "https://attack.mitre.org/techniques/T1595/002/", 
+            ],
+            tools=[
+                {"Nikto": "https://github.com/sullo/nikto"},
             ],
         ),
         A(
@@ -191,6 +215,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0043/", 
                 "https://attack.mitre.org/techniques/T1595/002/", 
             ],
+            tools=[
+                {"Spiderfoot": "https://github.com/smicallef/spiderfoot"},
+            ],
         ),
         A(
             id="web_xss_scanner",
@@ -206,6 +233,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0001/", 
                 "https://attack.mitre.org/techniques/T1190/", 
                 "https://attack.mitre.org/techniques/T1595/002/", 
+            ],
+            tools=[
+                {"Dalfox": "https://github.com/hahwul/dalfox"},
             ],
         ),
     ],
@@ -224,6 +254,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0006/", 
                 "https://attack.mitre.org/techniques/T1110/001/", 
             ],
+            tools=[
+                {"Hydra": "https://github.com/vanhauser-thc/thc-hydra"},
+            ],
         ),
         A(
             id="bf_telnet",
@@ -237,6 +270,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
             mitre=[
                 "https://attack.mitre.org/tactics/TA0006/", 
                 "https://attack.mitre.org/techniques/T1110/001/", 
+            ],
+            tools=[
+                {"Hydra": "https://github.com/vanhauser-thc/thc-hydra"},
             ],
         ),
     ],
@@ -253,6 +289,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1499/", 
                 "https://attack.mitre.org/techniques/T1499/003/", 
             ],
+            tools=[
+                {"aiocoap": "https://aiocoap.readthedocs.io/en/latest/"},
+            ],
         ),
         A(
             id="iot_mqtt_bruteforce",
@@ -265,6 +304,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1110/001/", 
                 "https://attack.mitre.org/techniques/T1110/", 
             ],
+            tools=[
+                {"ralmqtt": "https://github.com/Red-Alert-Labs/ralmqtt/"},
+            ],
         ),
         A(
             id="iot_mqtt_publisher",
@@ -275,6 +317,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
             mitre=[
                 "https://attack.mitre.org/tactics/TA0040/", 
                 "https://attack.mitre.org/techniques/T1499/002/", 
+            ],
+            tools=[
+                {"eclipse-mosquitto": "https://github.com/eclipse-mosquitto/mosquitto"},
             ],
         ),
     ],
@@ -295,6 +340,10 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0040/", 
                 "https://attack.mitre.org/techniques/T1499/003/", 
             ],
+            tools=[
+                {"curl": "https://curl.se/"},
+                {"bash" "https://www.gnu.org/software/bash/"},
+            ],
         ),
         A(
             id="dos_http_slowloris",
@@ -308,6 +357,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
             mitre=[
                 "https://attack.mitre.org/tactics/TA0040/", 
                 "https://attack.mitre.org/techniques/T1499/003/", 
+            ],
+            tools=[
+                {"SlowLoris": "https://github.com/gkbrk/slowloris.git"},
             ],
         ),
         A(
@@ -328,6 +380,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1595/001/", 
                 "https://attack.mitre.org/techniques/T1046/", 
             ],
+            tools=[
+                {"hping3": "http://www.hping.org/"},
+            ],
         ),
         A(
             id="dos_icmp_flood",
@@ -342,6 +397,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
             mitre=[
                 "https://attack.mitre.org/tactics/TA0040/", 
                 "https://attack.mitre.org/techniques/T1498/001/", 
+            ],
+            tools=[
+                {"hping3": "http://www.hping.org/"},
             ],
         ),
         A(
@@ -361,6 +419,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0040/", 
                 "https://attack.mitre.org/techniques/T1498/001/", 
             ],
+            tools=[
+                {"hping3": "http://www.hping.org/"},
+            ],
         ),
         A(
             id="dos_rst_flood",
@@ -378,6 +439,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
             mitre=[
                 "https://attack.mitre.org/tactics/TA0040/", 
                 "https://attack.mitre.org/techniques/T1498/001/", 
+            ],
+            tools=[
+                {"hping3": "http://www.hping.org/"},
             ],
         ),
         A(
@@ -397,6 +461,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0040/", 
                 "https://attack.mitre.org/techniques/T1498/001/", 
             ],
+            tools=[
+                {"hping3": "http://www.hping.org/"},
+            ],
         ),
         A(
             id="dos_udp_flood",
@@ -415,6 +482,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0040/", 
                 "https://attack.mitre.org/techniques/T1498/001/", 
             ],
+            tools=[
+                {"hping3": "http://www.hping.org/"},
+            ],
         ),
     ],
 
@@ -430,6 +500,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1018/", 
                 "https://attack.mitre.org/techniques/T1595/001/", 
             ],
+            tools=[
+                {"arp-scan": "https://github.com/royhills/arp-scan"},
+            ],
         ),
         A(
             id="recon_ping_sweep",
@@ -442,7 +515,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1018/", 
                 "https://attack.mitre.org/techniques/T1595/001/", 
             ],
-
+            tools=[
+                {"fping": "https://www.fping.org/"},
+            ],
         ),
         A(
             id="recon_port_scanner_aggressive",
@@ -457,6 +532,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1046/", 
                 "https://attack.mitre.org/techniques/T1595/002/", 
             ],
+            tools=[
+                {"Nmap": "https://nmap.org/"},
+            ],
         ),
         A(
             id="recon_port_scanner_os",
@@ -469,6 +547,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1595/001/", 
                 "https://attack.mitre.org/tactics/TA0043/", 
                 "https://attack.mitre.org/techniques/T1046/", 
+            ],
+            tools=[
+                {"Nmap": "https://nmap.org/"},
             ],
         ),
         A(
@@ -483,6 +564,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0043/", 
                 "https://attack.mitre.org/techniques/T1046/", 
             ],
+            tools=[
+                {"Nmap": "https://nmap.org/"},
+            ],
         ),
         A(
             id="recon_port_scanner_udp",
@@ -496,6 +580,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0043/", 
                 "https://attack.mitre.org/techniques/T1046/", 
             ],
+            tools=[
+                {"Nmap": "https://nmap.org/"},
+            ],
         ),
         A(
             id="recon_port_scanner_vuln",
@@ -506,6 +593,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
             mitre=[
                 "https://attack.mitre.org/tactics/TA0043/", 
                 "https://attack.mitre.org/techniques/T1595/002/", 
+            ],
+            tools=[
+                {"Nmap": "https://nmap.org/"},
             ],
         ),
         A(
@@ -520,6 +610,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1595/002/", 
                 "https://attack.mitre.org/techniques/T1135/", 
             ],
+            tools=[
+                {"enum4linux-ng": "https://github.com/cddmp/enum4linux-ng.git"},
+            ],
         ),
         A(
             id="recon_snmp_scanner",
@@ -532,6 +625,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0006/", 
                 "https://attack.mitre.org/techniques/T1046/", 
                 "https://attack.mitre.org/techniques/T1110/001/", 
+            ],
+            tools=[
+                {"onesixtyone": "https://github.com/trailofbits/onesixtyone"},
             ],
         ),
     ],
@@ -551,6 +647,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1557/", 
                 "https://attack.mitre.org/techniques/T1557/002/", 
             ],
+            tools=[
+                {"ArpSpoof": "https://github.com/smikims/arpspoof"},
+            ],
         ),
         A(
             id="net_cdp_table_flood",
@@ -568,6 +667,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1498/", 
                 "https://attack.mitre.org/techniques/T1498/001/", 
             ],
+            tools=[
+                {"Yersinia": "https://github.com/tomac/yersinia"},
+            ],
         ),
         A(
             id="net_dhcp_starvation",
@@ -580,6 +682,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/tactics/TA0040/", 
                 "https://attack.mitre.org/techniques/T1499/", 
                 "https://attack.mitre.org/techniques/T1499/002/",
+            ],
+            tools=[
+                {"Yersinia": "https://github.com/tomac/yersinia"},
             ],
         ),
         A(
@@ -598,6 +703,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1498/001/", 
                 "https://attack.mitre.org/techniques/T1565/002/", 
             ],
+            tools=[
+                {"Yersinia": "https://github.com/tomac/yersinia"},
+            ],
         ),
         A(
             id="net_stp_tcn_flood",
@@ -615,6 +723,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1498/001/", 
                 "https://attack.mitre.org/techniques/T1565/002/", 
             ],
+            tools=[
+                {"Yersinia": "https://github.com/tomac/yersinia"},
+            ],
         ),
         A(
             id="net_ipv6_mld_flood",
@@ -630,6 +741,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
             mitre=[
                 "https://attack.mitre.org/tactics/TA0040/", 
                 "https://attack.mitre.org/techniques/T1498/001/", 
+            ],
+            tools=[
+                {"thc-ipv6": "https://github.com/vanhauser-thc/thc-ipv6"},
             ],
         ),
         A(
@@ -648,6 +762,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1018/", 
                 "https://attack.mitre.org/techniques/T1595/001/", 
             ],
+            tools=[
+                {"thc-ipv6": "https://github.com/vanhauser-thc/thc-ipv6"},
+            ],
         ),
         A(
             id="net_ipv6_ra_flood",
@@ -663,6 +780,9 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
             mitre=[
                 "https://attack.mitre.org/tactics/TA0006/", 
                 "https://attack.mitre.org/techniques/T1557/", 
+            ],
+            tools=[
+                {"thc-ipv6": "https://github.com/vanhauser-thc/thc-ipv6"},
             ],
         ),
     ],
@@ -683,6 +803,10 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1499/", 
                 "https://attack.mitre.org/techniques/T1499/002/",
             ],
+            tools=[
+                {"bash": "https://www.gnu.org/software/bash/"},
+                {"dig": "https://man.archlinux.org/man/dig.1"},
+            ],
         ),
         A(
             id="exf_icmp_tunnel",
@@ -699,6 +823,10 @@ CATEGORIES: Dict[str, List[AttackSpec]] = {
                 "https://attack.mitre.org/techniques/T1572/", 
                 "https://attack.mitre.org/techniques/T1095/", 
                 "https://attack.mitre.org/techniques/T1110/001/", 
+            ],
+            tools=[
+                {"openssh-client": "https://www.openssh.org/"},
+                {"ptunnel-ng": "https://github.com/utoni/ptunnel-ng"},
             ],
         ),
     ],
